@@ -1,0 +1,36 @@
+version: '3'
+
+services:
+  ai:
+    container_name: smarttrader-ai
+    build: ./infra/
+    env_file:
+      - .env
+    command: python main.py
+    volumes:
+      - .:/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  webserver:
+    container_name: smarttrader-webserver
+    image: nginx:alpine
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./infra/certs:/etc/nginx/certs
+    networks:
+      - app-network
+    depends_on:
+      - ai
+
+networks:
+  app-network:
+    driver: bridge
