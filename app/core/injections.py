@@ -1,12 +1,10 @@
 from fastapi import Depends
 from app.core.database import get_db
-from app.repositories.sqlalchemy.active_repository import ActiveRepository
-from app.repositories.sqlalchemy.alert_repository import AlertRepository
-from app.repositories.sqlalchemy.investiment_repository import InvestimentRepository
+from app.repositories.sqlalchemy.plan_repository import PlanRepository
+from app.repositories.sqlalchemy.subscription_repository import SubscriptionRepository
 from app.repositories.sqlalchemy.user_repository import UserRepository
-from app.services.active_service import ActiveService
-from app.services.alert_service import AlertService
-from app.services.investiment_service import InvestimentService
+from app.services.plan_service import PlanService
+from app.services.subscription_service import SubscriptionService
 from app.services.user_service import UserService
 from sqlalchemy.orm import Session
 
@@ -16,16 +14,13 @@ def get_user_service(db: Session = Depends(get_db)) -> UserService:
     return UserService(repo)
 
 
-def get_alert_service(db: Session = Depends(get_db)) -> AlertService:
-    repo = AlertRepository(db)
-    return AlertService(repo)
+def get_plan_service(db: Session = Depends(get_db)) -> PlanService:
+    repo = PlanRepository(db)
+    return PlanService(repo)
 
 
-def get_active_service(db: Session = Depends(get_db)) -> ActiveService:
-    repo = ActiveRepository(db)
-    return ActiveService(repo)
-
-
-def get_investiment_service(db: Session = Depends(get_db)) -> InvestimentService:
-    repo = InvestimentRepository(db)
-    return InvestimentService(repo)
+def get_subscription_service(db: Session = Depends(get_db)) -> SubscriptionService:
+    repo = SubscriptionRepository(db)
+    user_repo = UserRepository(db)
+    plan_repo = PlanRepository(db)
+    return SubscriptionService(repo, user_repo, plan_repo)

@@ -11,13 +11,14 @@ class UserRepository(IUserRepository):
     def __init__(self, db: Session):
         self.db = db
 
-    def create(self, user_data: UserIn) -> UserOut:
+    def create(self, user_in: UserIn, key: str) -> UserOut:
         user = User(
-            name=user_data.name,
-            email=user_data.email,
-            password=hash_password(user_data.password),
-            phone=user_data.phone,
-            type_notification=user_data.type_notification,
+            name=user_in.name,
+            email=user_in.email,
+            password=hash_password(user_in.password),
+            phone=user_in.phone,
+            api_key=key,
+            active=True,
         )
         self.db.add(user)
         self.db.commit()
@@ -41,8 +42,19 @@ class UserRepository(IUserRepository):
     def find_all(self) -> List[UserOut]:
         return self.db.query(User).all()
 
-    def update(self, user: User, user_data: UserIn) -> UserOut:
-        user.name = user_data.name
-        user.email = user_data.email
-        user.phone = user_data.phone
-        user.type_notification = user_data.type_notification
+    def update(self, user: User, user_in: UserIn) -> UserOut:
+        user.name = user_in.name
+        user.email = user_in.email
+        user.phone = user_in.phone
+        user.active = user_in.active
+
+        self.db.add(user)
+        self.db.commit()
+
+        return user
+
+    def delete(self, user: User) -> bool:
+        self.db.delete(user)
+        self.db.commit()
+
+        return True

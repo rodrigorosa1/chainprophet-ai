@@ -1,6 +1,5 @@
-from sqlalchemy import Column, Enum, String
+from sqlalchemy import Column, String, Boolean
 from sqlalchemy.orm import relationship
-from app.constants.enums.type_notification_enum import TypeNotificationEnum
 from app.models.base import ModelBase
 
 
@@ -11,7 +10,9 @@ class User(ModelBase):
     email = Column(String(255), nullable=False, unique=True)
     password = Column(String(100), nullable=False)
     phone = Column(String(100), nullable=False)
-    type_notification = Column(Enum(TypeNotificationEnum), nullable=False)
+    api_key = Column(String(100), nullable=False)
+    provider_customer_id = Column(String(100), nullable=True)
+    active = Column(Boolean, nullable=False, default=True)
 
-    alerts = relationship("Alert", back_populates="user")
-    investiments = relationship("Investiment", back_populates="user")
+    subscription = relationship("Subscription", back_populates="user")
+    histories = relationship("History", back_populates="user")

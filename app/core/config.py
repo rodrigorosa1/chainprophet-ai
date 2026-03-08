@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 3600
     TESTING: bool = False
     APPLICATION_URL: str
-    TIMEZONE: str = 'America/Sao_Paulo'
+    TIMEZONE: str = "America/Sao_Paulo"
     POOL_RECYCLE: int = 3600
 
     class Config:

@@ -10,8 +10,12 @@ class UserEmailDocumentAlreadyExistsError(Exception):
     MESSAGE = "Email already exists"
 
 
-class AlertNotFoundError(Exception):
-    MESSAGE = "Alert not found"
+class PlanNotFoundError(Exception):
+    MESSAGE = "Plan not found"
+
+
+class SubscriptionNotFoundError(Exception):
+    MESSAGE = "Subscription not found"
 
 
 class ActiveAlreadyExistsError(Exception):

@@ -1,11 +1,15 @@
 import os
 import pytest
+import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
 from app.core.database import get_db
 from app.models.base import Base
 from main import app
+from faker import Faker
+
+fake = Faker("en_US")
 
 TEST_DB_PATH = "./test.db"
 TEST_DATABASE_URL = f"sqlite:///{TEST_DB_PATH}"
@@ -33,6 +37,48 @@ def db_session():
             session.execute(tbl.delete())
         session.commit()
         session.close()
+
+
+@pytest.fixture(scope="function")
+def fake_user_payload():
+    return {
+        "name": fake.name(),
+        "email": "test@traderxai.com",
+        "password": "123",
+        "phone": fake.msisdn(),
+        "active": True,
+    }
+
+
+@pytest.fixture(scope="function")
+def fake_auth_payload():
+    return {
+        "email": "test@traderxai.com",
+        "password": "123",
+    }
+
+
+@pytest.fixture(scope="function")
+def fake_plan_payload():
+    return {
+        "name": "Premium Plan",
+        "daily_amount": 10,
+        "no_limit": False,
+        "value": 9.99,
+    }
+
+
+@pytest.fixture
+def fake_subscription_payload():
+    def _factory(plan_id=None, user_id=None):
+        return {
+            "user_id": user_id,
+            "plan_id": plan_id,
+            "active": True,
+            "canceled_at": None,
+        }
+
+    return _factory
 
 
 @pytest.fixture(scope="function")

@@ -1,7 +1,8 @@
+from fastapi import Depends
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from app.core.config import Settings
+from app.core.config import Settings, get_settings
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -16,18 +17,32 @@ def verify_password(stored_password: str, provided_password: str) -> bool:
 
 
 def create_access_token(
-    settings: Settings, data: dict, expires_delta: timedelta = None
+    data: dict,
+    expires_delta: timedelta = None,
 ):
+    settings = get_settings()
     to_encode = data.copy()
+
     expire = datetime.now() + (
         expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
+
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+    access_token = jwt.encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES,
+    }
 
 
-def verify_token(settings: Settings, token: str):
+def verify_token(token: str):
     try:
+        settings = get_settings()
         return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     except JWTError:
         return None

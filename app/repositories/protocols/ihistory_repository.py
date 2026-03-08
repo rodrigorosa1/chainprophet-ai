@@ -1,0 +1,8 @@
+from typing import List, Protocol
+from uuid import UUID
+from app.schemas.history_schema import HistoryOut
+
+
+class IHistoryRepository(Protocol):
+    def create(self, user_id: UUID) -> HistoryOut: ...
+    def find_by_user(self, user_id: UUID) -> List[HistoryOut]: ...

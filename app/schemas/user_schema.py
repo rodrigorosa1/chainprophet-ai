@@ -1,13 +1,15 @@
+from typing import Optional
 from pydantic import BaseModel, ConfigDict
 from uuid import UUID
-from app.constants.enums.type_notification_enum import TypeNotificationEnum
 
 
 class UserBase(BaseModel):
     name: str
     email: str
     phone: str
-    type_notification: TypeNotificationEnum
+    api_key: Optional[str] = None
+    provider_customer_id: Optional[str] = None
+    active: Optional[bool] = None
 
 
 class UserIn(UserBase):

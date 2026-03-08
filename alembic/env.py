@@ -1,5 +1,6 @@
 import os
 import sys
+
 sys.path.append(os.getcwd())
 from app.core.config import get_settings
 
@@ -28,8 +29,8 @@ settings = get_settings()
 config = context.config
 config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
 
-#config = context.config
-#config.set_main_option('sqlalchemy.url', settings.SQLALCHEMY_DATABASE_URI)
+# config = context.config
+# config.set_main_option('sqlalchemy.url', settings.SQLALCHEMY_DATABASE_URI)
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 fileConfig(config.config_file_name)
@@ -39,6 +40,7 @@ fileConfig(config.config_file_name)
 # from myapp import mymodel
 
 from app.models.base import Base
+
 target_metadata = Base.metadata
 
 
@@ -81,9 +83,7 @@ def run_migrations_online():
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()
