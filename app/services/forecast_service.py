@@ -1,10 +1,17 @@
+from datetime import datetime
+
 import pandas as pd
 from prophet import Prophet
 
+from app.repositories.protocols.iforescat_repository import IForecastRepository
 from app.services.market_data_service import MarketDataService
 from app.services.sentiment_service import SentimentService
 from app.services.signal_engine_service import SignalEngineService
 from app.services.backtest_service import BacktestService
+from app.models.forecast_request import ForecastRequest
+from app.models.forecast_asset import ForecastAsset
+from app.models.forecast_backtest import ForecastBacktest
+from app.models.forecast_point import ForecastPoint
 
 
 DEFAULT_TOP_10_CRYPTO = [
@@ -22,11 +29,19 @@ DEFAULT_TOP_10_CRYPTO = [
 
 
 class ForecastService:
-    def __init__(self):
-        self.market_data_service = MarketDataService()
-        self.sentiment_service = SentimentService()
-        self.signal_engine_service = SignalEngineService()
-        self.backtest_service = BacktestService()
+    def __init__(
+        self,
+        forecast_repo: IForecastRepository,
+        market_data_service: MarketDataService,
+        sentiment_service: SentimentService,
+        signal_engine_service: SignalEngineService,
+        backtest_service: BacktestService,
+    ):
+        self.market_data_service = market_data_service
+        self.sentiment_service = sentiment_service
+        self.signal_engine_service = signal_engine_service
+        self.backtest_service = backtest_service
+        self.forecast_repo = forecast_repo
 
     def _build_prophet_model(self):
         return Prophet(
@@ -293,12 +308,77 @@ class ForecastService:
                     }
                 )
 
-        return {
+        forecast = {
             "timeframe": "1h",
             "horizon_hours": hours,
             "total_assets": len(results),
             "results": results,
         }
 
+        self.save_forecast_response(response_data=forecast)
+
+        return forecast
+
     def forecast_default_top10(self, hours: int = 24) -> dict:
         return self.forecast_prices(tickers=DEFAULT_TOP_10_CRYPTO, hours=hours)
+
+    def save_forecast_response(
+        self,
+        response_data: dict,
+        request_payload: dict | None = None,
+        model_version: str | None = None,
+    ) -> ForecastRequest:
+        forecast_request = ForecastRequest(
+            timeframe=response_data["timeframe"],
+            horizon_hours=response_data["horizon_hours"],
+            total_assets=response_data["total_assets"],
+            model_version=model_version,
+            request_payload=request_payload,
+            response_payload=response_data,
+        )
+
+        for result in response_data.get("results", []):
+            asset_data = result.get("asset", {})
+            backtest_data = result.get("backtest", {})
+            forecast_data = result.get("forecast", [])
+
+            forecast_asset = ForecastAsset(
+                asset_name=asset_data.get("name"),
+                asset_symbol=asset_data.get("symbol"),
+                asset_code=asset_data.get("code"),
+                error=result.get("error"),
+            )
+
+            if backtest_data:
+                forecast_backtest = ForecastBacktest(
+                    windows_used=backtest_data.get("windows_used"),
+                    horizon_hours=backtest_data.get("horizon_hours"),
+                    mae=backtest_data.get("mae"),
+                    rmse=backtest_data.get("rmse"),
+                    mape_percent=backtest_data.get("mape_percent"),
+                    directional_accuracy_percent=backtest_data.get(
+                        "directional_accuracy_percent"
+                    ),
+                    quality_score_percent=backtest_data.get("quality_score_percent"),
+                )
+
+                forecast_asset.backtest = forecast_backtest
+
+            for point in forecast_data:
+                forecast_point = ForecastPoint(
+                    forecast_datetime=self._parse_datetime(point.get("datetime")),
+                    estimated_price=point.get("estimated_price"),
+                    confidence_percent=point.get("confidence_percent"),
+                )
+
+                forecast_asset.forecast_points.append(forecast_point)
+
+            forecast_request.assets.append(forecast_asset)
+
+        return self.forecast_repo.create(forecast_request)
+
+    def _parse_datetime(self, value: str | None) -> datetime | None:
+        if not value:
+            return None
+
+        return datetime.strptime(value, "%Y-%m-%d %H:%M:%S")

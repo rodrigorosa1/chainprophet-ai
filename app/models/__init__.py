@@ -2,3 +2,9 @@ from .user import User
 from .plan import Plan
 from .history import History
 from .subscription import Subscription
+from .forecast_request import ForecastRequest
+from .forecast_asset import ForecastAsset
+from .forecast_backtest import ForecastBacktest
+from .forecast_point import ForecastPoint
+from .forecast_point_outcome import ForecastPointOutcome
+from .forecast_point_evaluation import ForecastPointEvaluation

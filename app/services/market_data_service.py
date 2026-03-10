@@ -1,5 +1,6 @@
 import yfinance as yf
 import pandas as pd
+from datetime import timedelta
 
 
 class MarketDataService:
@@ -68,3 +69,40 @@ class MarketDataService:
             return titles
         except Exception:
             return []
+
+    def get_price_by_datetime(
+        self,
+        ticker: str,
+        target_datetime,
+        interval: str = "1h",
+    ) -> float | None:
+        ticker_obj = self.get_ticker(ticker)
+
+        start = target_datetime - timedelta(hours=2)
+        end = target_datetime + timedelta(hours=2)
+
+        history = ticker_obj.history(
+            start=start,
+            end=end,
+            interval=interval,
+        )
+
+        if history.empty:
+            return None
+
+        history = history.copy()
+        history.index = pd.to_datetime(history.index).tz_localize(None)
+
+        target_datetime = pd.to_datetime(target_datetime).to_pydatetime()
+
+        if target_datetime in history.index:
+            row = history.loc[target_datetime]
+            return round(float(row["Close"]), 2)
+
+        nearest_index = min(
+            history.index,
+            key=lambda dt: abs(dt.to_pydatetime() - target_datetime),
+        )
+
+        row = history.loc[nearest_index]
+        return round(float(row["Close"]), 2)
