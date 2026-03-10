@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    PYTHON_VERSION: str
     APP_NAME: str
     PORT: int
     DEBUG: bool = True
