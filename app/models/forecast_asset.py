@@ -30,3 +30,10 @@ class ForecastAsset(ModelBase):
     forecast_points = relationship(
         "ForecastPoint", back_populates="forecast_asset", cascade="all, delete-orphan"
     )
+
+    diagnostic = relationship(
+        "ForecastDiagnostic",
+        back_populates="forecast_asset",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )

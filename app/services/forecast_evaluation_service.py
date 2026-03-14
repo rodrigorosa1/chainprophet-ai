@@ -1,3 +1,4 @@
+from app.constants.enums.evaluation_status_enum import EvaluationStatusEnum
 from app.repositories.sqlalchemy.forecast_analysis_repository import (
     ForecastAnalysisRepository,
 )
@@ -90,11 +91,11 @@ class ForecastEvaluationService:
         within_tolerance = percentage_error <= tolerance_percent
 
         if direction_correct and within_tolerance:
-            evaluation_status = "hit"
+            evaluation_status = EvaluationStatusEnum.HIT.value
         elif direction_correct:
-            evaluation_status = "partial_hit"
+            evaluation_status = EvaluationStatusEnum.PARTIAL_HIT.value
         else:
-            evaluation_status = "miss"
+            evaluation_status = EvaluationStatusEnum.MISS.value
 
         return {
             "absolute_error": round(absolute_error, 4),

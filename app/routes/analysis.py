@@ -3,11 +3,17 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.injections import (
+    get_forecast_failure_classifier_service,
     get_forecast_outcome_service,
     get_forecast_evaluation_service,
 )
+from app.services.forecast_failure_classifier_service import (
+    ForecastFailureClassifierService,
+)
 from app.services.forecast_outcome_service import ForecastOutcomeService
 from app.services.forecast_evaluation_service import ForecastEvaluationService
+from app.core.injections import get_forecast_llm_analyst_service
+from app.services.forecast_llm_analyst_service import ForecastLlmAnalystService
 
 router = APIRouter()
 
@@ -46,6 +52,44 @@ def evaluate_forecasts(
         return {
             "message": "Forecasts evaluated successfully",
             "total_evaluated": len(result),
+            "items": result,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/classify-failures")
+def classify_failures(
+    classifier_service: Annotated[
+        ForecastFailureClassifierService,
+        Depends(get_forecast_failure_classifier_service),
+    ],
+    limit: int = Query(100, ge=1, le=1000),
+):
+    try:
+        result = classifier_service.classify_pending_assets(limit=limit)
+        return {
+            "message": "Failures classified successfully",
+            "total_classified": len(result),
+            "items": result,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/llm-analyze")
+def llm_analyze_failures(
+    analyst_service: Annotated[
+        ForecastLlmAnalystService,
+        Depends(get_forecast_llm_analyst_service),
+    ],
+    limit: int = Query(100, ge=1, le=1000),
+):
+    try:
+        result = analyst_service.analyze_pending_diagnostics(limit=limit)
+        return {
+            "message": "AI reports generated successfully",
+            "total_generated": len(result),
             "items": result,
         }
     except Exception as e:

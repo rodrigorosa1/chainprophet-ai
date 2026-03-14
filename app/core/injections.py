@@ -17,6 +17,17 @@ from app.services.sentiment_service import SentimentService
 from app.services.signal_engine_service import SignalEngineService
 from app.services.subscription_service import SubscriptionService
 from app.services.user_service import UserService
+from app.services.forecast_failure_classifier_service import (
+    ForecastFailureClassifierService,
+)
+from app.repositories.sqlalchemy.forecast_analysis_repository import (
+    ForecastAnalysisRepository,
+)
+from app.clients.openai_client import OpenAiClient
+from app.repositories.sqlalchemy.forecast_ai_report_repository import (
+    ForecastAiReportRepository,
+)
+from app.services.forecast_llm_analyst_service import ForecastLlmAnalystService
 from sqlalchemy.orm import Session
 
 
@@ -72,4 +83,26 @@ def get_forecast_evaluation_service(
 
     return ForecastEvaluationService(
         analysis_repository=analysis_repo,
+    )
+
+
+def get_forecast_failure_classifier_service(
+    db: Session = Depends(get_db),
+) -> ForecastFailureClassifierService:
+    analysis_repo = ForecastAnalysisRepository(db)
+
+    return ForecastFailureClassifierService(
+        analysis_repository=analysis_repo,
+    )
+
+
+def get_forecast_llm_analyst_service(
+    db: Session = Depends(get_db),
+) -> ForecastLlmAnalystService:
+    ai_report_repository = ForecastAiReportRepository(db)
+    ai_client = OpenAiClient()
+
+    return ForecastLlmAnalystService(
+        ai_report_repository=ai_report_repository,
+        ai_client=ai_client,
     )

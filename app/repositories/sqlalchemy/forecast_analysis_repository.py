@@ -4,6 +4,9 @@ from sqlalchemy.orm import Session, joinedload
 from app.models.forecast_point import ForecastPoint
 from app.models.forecast_point_outcome import ForecastPointOutcome
 from app.models.forecast_point_evaluation import ForecastPointEvaluation
+from app.models.forecast_asset import ForecastAsset
+from app.models.forecast_diagnostic import ForecastDiagnostic
+from app.models.forecast_point_evaluation import ForecastPointEvaluation
 from app.repositories.protocols.iforecast_analysis_repository import (
     IForecastAnalysisRepository,
 )
@@ -102,6 +105,60 @@ class ForecastAnalysisRepository(IForecastAnalysisRepository):
             self.db.refresh(evaluation)
 
             return evaluation
+        except Exception:
+            self.db.rollback()
+            raise
+
+    def find_assets_pending_diagnostic(self, limit: int = 100):
+        return (
+            self.db.query(ForecastAsset)
+            .options(
+                joinedload(ForecastAsset.forecast_points).joinedload(
+                    ForecastPoint.evaluation
+                ),
+                joinedload(ForecastAsset.backtest),
+                joinedload(ForecastAsset.forecast_request),
+            )
+            .filter(ForecastAsset.diagnostic == None)
+            .limit(limit)
+            .all()
+        )
+
+    def find_asset_evaluations(self, forecast_asset_id: str):
+        return (
+            self.db.query(ForecastPointEvaluation)
+            .filter(ForecastPointEvaluation.forecast_asset_id == forecast_asset_id)
+            .all()
+        )
+
+    def create_diagnostic(
+        self,
+        forecast_request_id: str,
+        forecast_asset_id: str,
+        root_cause_category: str,
+        confidence_score: float,
+        summary: str,
+        metrics_snapshot: dict | None = None,
+        evidence: dict | None = None,
+        recommended_actions: list[str] | None = None,
+    ) -> ForecastDiagnostic:
+        try:
+            diagnostic = ForecastDiagnostic(
+                forecast_request_id=forecast_request_id,
+                forecast_asset_id=forecast_asset_id,
+                root_cause_category=root_cause_category,
+                confidence_score=confidence_score,
+                summary=summary,
+                metrics_snapshot=metrics_snapshot,
+                evidence=evidence,
+                recommended_actions=recommended_actions,
+            )
+
+            self.db.add(diagnostic)
+            self.db.commit()
+            self.db.refresh(diagnostic)
+
+            return diagnostic
         except Exception:
             self.db.rollback()
             raise

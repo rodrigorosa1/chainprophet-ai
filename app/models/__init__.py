@@ -8,3 +8,4 @@ from .forecast_backtest import ForecastBacktest
 from .forecast_point import ForecastPoint
 from .forecast_point_outcome import ForecastPointOutcome
 from .forecast_point_evaluation import ForecastPointEvaluation
+from .forecast_diagnostic import ForecastDiagnostic
