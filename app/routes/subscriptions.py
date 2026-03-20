@@ -13,9 +13,14 @@ router = APIRouter()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+tags: str = "Subscriptions"
+
 
 @router.post(
-    "/", response_model=SubscriptionOut, responses={400: {"description": "Bad Request"}}
+    "/",
+    response_model=SubscriptionOut,
+    responses={400: {"description": "Bad Request"}},
+    tags=[tags],
 )
 def create(
     subscription_in: SubscriptionIn,
@@ -36,6 +41,7 @@ def create(
     "/{id}",
     response_model=SubscriptionOut,
     responses={400: {"description": "Bad Request"}},
+    tags=[tags],
 )
 def find_by_id(
     id: UUID,
@@ -57,6 +63,7 @@ def find_by_id(
     "/",
     response_model=List[SubscriptionOut],
     responses={400: {"description": "Bad Request"}},
+    tags=[tags],
 )
 def find_all(
     plan_service: Annotated[SubscriptionService, Depends(get_subscription_service)],
@@ -75,6 +82,7 @@ def find_all(
     "/{id}",
     response_model=SubscriptionOut,
     responses={400: {"description": "Bad Request"}},
+    tags=[tags],
 )
 def update(
     id: UUID,

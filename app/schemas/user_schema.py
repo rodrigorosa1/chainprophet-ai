@@ -6,7 +6,7 @@ from uuid import UUID
 class UserBase(BaseModel):
     name: str
     email: str
-    phone: str
+    phone: Optional[str] = None
     api_key: Optional[str] = None
     provider_customer_id: Optional[str] = None
     active: Optional[bool] = None

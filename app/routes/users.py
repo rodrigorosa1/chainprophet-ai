@@ -12,9 +12,14 @@ router = APIRouter()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+tags: str = "Users"
+
 
 @router.post(
-    "/", response_model=UserOut, responses={400: {"description": "Bad request error"}}
+    "/",
+    response_model=UserOut,
+    responses={400: {"description": "Bad request error"}},
+    tags=[tags],
 )
 def create(
     user_in: UserIn, user_service: Annotated[UserService, Depends(get_user_service)]
@@ -32,6 +37,7 @@ def create(
     "/{id}",
     response_model=UserOut,
     responses={400: {"description": "Bad request error"}},
+    tags=[tags],
 )
 def find_by_id(
     id: UUID,
@@ -51,6 +57,7 @@ def find_by_id(
     "/",
     response_model=List[UserOut],
     responses={400: {"description": "Bad request error"}},
+    tags=[tags],
 )
 def find_all(
     user_service: Annotated[UserService, Depends(get_user_service)],
@@ -69,6 +76,7 @@ def find_all(
     "/{id}",
     response_model=UserOut,
     responses={400: {"description": "Bad request error"}},
+    tags=[tags],
 )
 def update(
     id: UUID,
@@ -85,6 +93,6 @@ def update(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/me")
+@router.get("/me", tags=[tags])
 def get_profile(current_user: Annotated[UserOut, Depends(get_current_user)]):
     return current_user

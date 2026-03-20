@@ -17,8 +17,10 @@ from app.services.forecast_llm_analyst_service import ForecastLlmAnalystService
 
 router = APIRouter()
 
+tags: str = "Analysis"
 
-@router.post("/collect-outcomes/")
+
+@router.post("/collect-outcomes/", tags=[tags])
 def collect_outcomes(
     outcome_service: Annotated[
         ForecastOutcomeService, Depends(get_forecast_outcome_service)
@@ -36,7 +38,7 @@ def collect_outcomes(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/evaluate")
+@router.post("/evaluate", tags=[tags])
 def evaluate_forecasts(
     evaluation_service: Annotated[
         ForecastEvaluationService, Depends(get_forecast_evaluation_service)
@@ -58,7 +60,7 @@ def evaluate_forecasts(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/classify-failures")
+@router.post("/classify-failures", tags=[tags])
 def classify_failures(
     classifier_service: Annotated[
         ForecastFailureClassifierService,
@@ -77,7 +79,7 @@ def classify_failures(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/llm-analyze")
+@router.post("/llm-analyze", tags=[tags])
 def llm_analyze_failures(
     analyst_service: Annotated[
         ForecastLlmAnalystService,

@@ -12,9 +12,14 @@ router = APIRouter()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+tags: str = "Plans"
+
 
 @router.post(
-    "/", response_model=PlanOut, responses={400: {"description": "Bad request error"}}
+    "/",
+    response_model=PlanOut,
+    responses={400: {"description": "Bad request error"}},
+    tags=[tags],
 )
 def create(
     plan_in: PlanIn, plan_service: Annotated[PlanService, Depends(get_plan_service)]
@@ -33,6 +38,7 @@ def create(
     response_model=PlanOut,
     responses={400: {"description": "Bad request error"}},
     description="Retrieve a plan by ID",
+    tags=[tags],
 )
 def find_by_id(
     id: UUID,
@@ -52,6 +58,7 @@ def find_by_id(
     "/",
     response_model=List[PlanOut],
     responses={400: {"description": "Bad request error"}},
+    tags=[tags],
 )
 def find_all(
     plan_service: Annotated[PlanService, Depends(get_plan_service)],
@@ -70,6 +77,7 @@ def find_all(
     "/{id}",
     response_model=PlanOut,
     responses={400: {"description": "Bad request error"}},
+    tags=[tags],
 )
 def update(
     id: UUID,

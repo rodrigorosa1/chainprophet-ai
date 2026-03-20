@@ -12,12 +12,15 @@ router = APIRouter()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+tags: str = "Forecast"
+
 
 @router.get(
     "/",
     response_model=MultiForecastResponse,
     responses={400: {"description": "Bad request error"}},
     description="Retrieve results of a forecast by active and hours",
+    tags=[tags],
 )
 def get_forecast(
     forecast_service: Annotated[ForecastService, Depends(get_forecast_service)],
@@ -40,6 +43,7 @@ def get_forecast(
     response_model=MultiForecastResponse,
     responses={400: {"description": "Bad request error"}},
     description="Retrieve results of a forecast by top10 and hours",
+    tags=[tags],
 )
 def get_default_top10_forecast(
     forecast_service: Annotated[ForecastService, Depends(get_forecast_service)],
@@ -53,7 +57,7 @@ def get_default_top10_forecast(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/save")
+@router.post("/save", tags=[tags])
 def save_forecast(
     forecast_service: Annotated[ForecastService, Depends(get_forecast_service)],
     payload: dict,
