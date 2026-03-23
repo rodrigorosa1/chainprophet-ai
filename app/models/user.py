@@ -16,3 +16,6 @@ class User(ModelBase):
 
     subscription = relationship("Subscription", back_populates="user")
     histories = relationship("History", back_populates="user")
+    assets = relationship(
+        "UserAsset", back_populates="user", cascade="all, delete-orphan"
+    )

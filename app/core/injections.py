@@ -1,11 +1,14 @@
 from fastapi import Depends
 from app.core.database import get_db
+from app.repositories.sqlalchemy.asset_repository import AssetRepository
 from app.repositories.sqlalchemy.forecast_analysis_repository import (
     ForecastAnalysisRepository,
 )
 from app.repositories.sqlalchemy.forecast_repository import ForecastRepository
 from app.repositories.sqlalchemy.plan_repository import PlanRepository
 from app.repositories.sqlalchemy.subscription_repository import SubscriptionRepository
+from app.repositories.sqlalchemy.user_asset_repository import UserAssetRepository
+from app.services.asset_service import AssetService
 from app.repositories.sqlalchemy.user_repository import UserRepository
 from app.services.backtest_service import BacktestService
 from app.services.forecast_evaluation_service import ForecastEvaluationService
@@ -33,7 +36,8 @@ from sqlalchemy.orm import Session
 
 def get_user_service(db: Session = Depends(get_db)) -> UserService:
     repo = UserRepository(db)
-    return UserService(repo)
+    user_asset_repo = UserAssetRepository(db)
+    return UserService(repo, user_asset_repo)
 
 
 def get_plan_service(db: Session = Depends(get_db)) -> PlanService:
@@ -106,3 +110,8 @@ def get_forecast_llm_analyst_service(
         ai_report_repository=ai_report_repository,
         ai_client=ai_client,
     )
+
+
+def get_asset_service(db: Session = Depends(get_db)) -> AssetService:
+    repo = AssetRepository(db)
+    return AssetService(repo)
