@@ -1,9 +1,9 @@
 from datetime import datetime
-
 import pandas as pd
 from prophet import Prophet
-
 from app.repositories.protocols.iforescat_repository import IForecastRepository
+from app.repositories.protocols.ihistory_repository import IHistoryRepository
+from app.repositories.protocols.iuser_repository import IUserRepository
 from app.services.market_data_service import MarketDataService
 from app.services.sentiment_service import SentimentService
 from app.services.signal_engine_service import SignalEngineService
@@ -14,20 +14,6 @@ from app.models.forecast_backtest import ForecastBacktest
 from app.models.forecast_point import ForecastPoint
 
 
-DEFAULT_TOP_10_CRYPTO = [
-    "BTC-USD",
-    "ETH-USD",
-    "BNB-USD",
-    "SOL-USD",
-    "XRP-USD",
-    "ADA-USD",
-    "DOGE-USD",
-    "AVAX-USD",
-    "DOT-USD",
-    "LINK-USD",
-]
-
-
 class ForecastService:
     def __init__(
         self,
@@ -36,12 +22,16 @@ class ForecastService:
         sentiment_service: SentimentService,
         signal_engine_service: SignalEngineService,
         backtest_service: BacktestService,
+        user_repo: IUserRepository,
+        history_repo: IHistoryRepository,
     ):
         self.market_data_service = market_data_service
         self.sentiment_service = sentiment_service
         self.signal_engine_service = signal_engine_service
         self.backtest_service = backtest_service
         self.forecast_repo = forecast_repo
+        self.user_repo = user_repo
+        self.history_repo = history_repo
 
     def _build_prophet_model(self):
         return Prophet(
@@ -270,7 +260,14 @@ class ForecastService:
             "forecast": response,
         }
 
-    def forecast_prices(self, tickers: list[str], hours: int = 24) -> dict:
+    def forecast_prices(
+        self, api_key: str, tickers: list[str], hours: int = 24
+    ) -> dict:
+        user = self.user_repo.find_by_api_key(api_key)
+
+        if not user or not user.active:
+            raise ValueError("Invalid or inactive API key.")
+
         results = []
 
         unique_tickers = []
@@ -316,11 +313,9 @@ class ForecastService:
         }
 
         self.save_forecast_response(response_data=forecast)
+        self.history_repo.create(user_id=user.id)
 
         return forecast
-
-    def forecast_default_top10(self, hours: int = 24) -> dict:
-        return self.forecast_prices(tickers=DEFAULT_TOP_10_CRYPTO, hours=hours)
 
     def save_forecast_response(
         self,

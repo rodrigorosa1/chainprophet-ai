@@ -29,11 +29,13 @@ def create(
     ],
 ):
     try:
-        subscription = subscription_service.create(subscription_in)
+        subscription = subscription_service.create(
+            subscription_in.user_id, subscription_in.plan_id
+        )
         return SubscriptionOut.model_validate(subscription)
 
     except Exception as e:
-        logger.error(f"Error in register user: {e}")
+        logger.error(f"Error in create subscription: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -55,7 +57,7 @@ def find_by_id(
         return SubscriptionOut.model_validate(subscription)
 
     except Exception as e:
-        logger.error(f"Error in query plan: {e}")
+        logger.error(f"Error in query subscription: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -66,15 +68,17 @@ def find_by_id(
     tags=[tags],
 )
 def find_all(
-    plan_service: Annotated[SubscriptionService, Depends(get_subscription_service)],
+    subscription_service: Annotated[
+        SubscriptionService, Depends(get_subscription_service)
+    ],
     current_user: Annotated[UserOut, Depends(get_current_user)] = None,
 ):
     try:
-        plans = plan_service.find_all()
-        return [SubscriptionOut.model_validate(x) for x in plans]
+        subscriptions = subscription_service.find_all()
+        return [SubscriptionOut.model_validate(x) for x in subscriptions]
 
     except Exception as e:
-        logger.error(f"Error in query plans: {e}")
+        logger.error(f"Error in query subscriptions: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -97,5 +101,5 @@ def update(
         return SubscriptionOut.model_validate(subscription)
 
     except Exception as e:
-        logger.error(f"Error in update plan: {e}")
+        logger.error(f"Error in update subscription: {e}")
         raise HTTPException(status_code=400, detail=str(e))

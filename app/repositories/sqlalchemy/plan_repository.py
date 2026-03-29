@@ -1,6 +1,8 @@
 from typing import List
 from uuid import UUID
 from sqlalchemy.orm import Session
+from app.constants.enums.Plan_name_enum import PlanNameEnum
+from app.constants.enums.Plan_name_enum import PlanNameEnum
 from app.models.plan import Plan
 from app.repositories.protocols.iplan_repository import IPlanRepository
 from app.schemas.plan_schema import PlanIn, PlanOut
@@ -44,3 +46,6 @@ class PlanRepository(IPlanRepository):
         self.db.commit()
 
         return True
+
+    def get_trial(self) -> PlanOut:
+        return self.db.query(Plan).filter(Plan.name == PlanNameEnum.TRIAL.value).first()

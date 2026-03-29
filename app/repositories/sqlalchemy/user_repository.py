@@ -42,6 +42,9 @@ class UserRepository(IUserRepository):
     def find_all(self) -> List[UserOut]:
         return self.db.query(User).all()
 
+    def find_by_api_key(self, api_key: str) -> UserOut:
+        return self.db.query(User).filter(User.api_key == api_key).first()
+
     def update(self, user: User, user_in: UserIn) -> UserOut:
         user.name = user_in.name
         user.email = user_in.email

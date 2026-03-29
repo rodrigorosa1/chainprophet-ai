@@ -29,8 +29,10 @@ class TestUserService(unittest.TestCase):
         )
 
         user_asset_repo = Mock()
+        plan_repo = Mock()
+        subscription_repo = Mock()
 
-        service = UserService(mock_repo, user_asset_repo)
+        service = UserService(mock_repo, user_asset_repo, plan_repo, subscription_repo)
         result = service.create(user_data)
 
         self.assertEqual(result.name, user_data.name)
@@ -54,7 +56,9 @@ class TestUserService(unittest.TestCase):
         )
 
         user_asset_repo = Mock()
-        service = UserService(mock_repo, user_asset_repo)
+        plan_repo = Mock()
+        subscription_repo = Mock()
+        service = UserService(mock_repo, user_asset_repo, plan_repo, subscription_repo)
         with pytest.raises(ValueError) as exc_info:
             service.create(user_data)
 
@@ -74,8 +78,9 @@ class TestUserService(unittest.TestCase):
         mock_repo.register_password.return_value = mock_repo.find_by_id.return_value
 
         user_asset_repo = Mock()
-
-        service = UserService(mock_repo, user_asset_repo)
+        plan_repo = Mock()
+        subscription_repo = Mock()
+        service = UserService(mock_repo, user_asset_repo, plan_repo, subscription_repo)
         result = service.register_password(uuid4(), "4ZP0xD7YH1n")
 
         self.assertEqual(result.name, "Anakin Skywalker")
@@ -88,7 +93,9 @@ class TestUserService(unittest.TestCase):
         mock_repo.find_by_id.return_value = []
 
         user_asset_repo = Mock()
-        service = UserService(mock_repo, user_asset_repo)
+        plan_repo = Mock()
+        subscription_repo = Mock()
+        service = UserService(mock_repo, user_asset_repo, plan_repo, subscription_repo)
         with pytest.raises(ValueError) as exc_info:
             service.register_password(uuid4(), "4ZP0xD7YH1n")
 
@@ -116,8 +123,9 @@ class TestUserService(unittest.TestCase):
         mock_repo.update.return_value = mock_repo.find_by_id.return_value
 
         user_asset_repo = Mock()
-
-        service = UserService(mock_repo, user_asset_repo)
+        plan_repo = Mock()
+        subscription_repo = Mock()
+        service = UserService(mock_repo, user_asset_repo, plan_repo, subscription_repo)
         result = service.update(uuid4(), user_data)
 
         self.assertEqual(result.name, user_data.name)
@@ -137,8 +145,10 @@ class TestUserService(unittest.TestCase):
         mock_repo.find_by_id.return_value = []
 
         user_asset_repo = Mock()
+        plan_repo = Mock()
+        subscription_repo = Mock()
 
-        service = UserService(mock_repo, user_asset_repo)
+        service = UserService(mock_repo, user_asset_repo, plan_repo, subscription_repo)
         with pytest.raises(ValueError) as exc_info:
             service.update(uuid4(), user_data)
 
@@ -158,8 +168,9 @@ class TestUserService(unittest.TestCase):
         mock_repo.delete.return_value = True
 
         user_asset_repo = Mock()
-
-        service = UserService(mock_repo, user_asset_repo)
+        plan_repo = Mock()
+        subscription_repo = Mock()
+        service = UserService(mock_repo, user_asset_repo, plan_repo, subscription_repo)
         result = service.delete(uuid4())
 
         self.assertTrue(result)
@@ -168,7 +179,9 @@ class TestUserService(unittest.TestCase):
         mock_repo = Mock()
         mock_repo.find_by_id.return_value = []
         user_asset_repo = Mock()
-        service = UserService(mock_repo, user_asset_repo)
+        plan_repo = Mock()
+        subscription_repo = Mock()
+        service = UserService(mock_repo, user_asset_repo, plan_repo, subscription_repo)
         with pytest.raises(ValueError) as exc_info:
             service.delete(uuid4())
 
@@ -190,7 +203,9 @@ class TestUserService(unittest.TestCase):
         )
         user_asset_repo = Mock()
         user_asset_repo.associate_assets.return_value = True
-        service = UserService(mock_repo, user_asset_repo)
+        plan_repo = Mock()
+        subscription_repo = Mock()
+        service = UserService(mock_repo, user_asset_repo, plan_repo, subscription_repo)
         result = service.associate_assets(user_id, asset_ids)
         self.assertTrue(result)
 
@@ -201,7 +216,9 @@ class TestUserService(unittest.TestCase):
         mock_repo = Mock()
         mock_repo.find_by_id.return_value = []
         user_asset_repo = Mock()
-        service = UserService(mock_repo, user_asset_repo)
+        plan_repo = Mock()
+        subscription_repo = Mock()
+        service = UserService(mock_repo, user_asset_repo, plan_repo, subscription_repo)
         with pytest.raises(ValueError) as exc_info:
             service.associate_assets(user_id, asset_ids)
 
@@ -226,11 +243,11 @@ class TestUserService(unittest.TestCase):
             UserAssetOut(id=asset_id, user_id=user_id, asset_id=asset_id)
             for asset_id in asset_ids
         ]
-        service = UserService(mock_repo, user_asset_repo)
+        plan_repo = Mock()
+        subscription_repo = Mock()
+        service = UserService(mock_repo, user_asset_repo, plan_repo, subscription_repo)
         result = service.find_assets_by_user_id(user_id)
         self.assertEqual(len(result), len(asset_ids))
         for asset_out, asset_id in zip(result, asset_ids):
             self.assertEqual(asset_out.user_id, user_id)
             self.assertEqual(asset_out.asset_id, asset_id)
-    
-    

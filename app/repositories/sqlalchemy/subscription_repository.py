@@ -11,10 +11,10 @@ class SubscriptionRepository(ISubscriptionRepository):
     def __init__(self, db: Session):
         self.db = db
 
-    def create(self, subscription_in: SubscriptionIn) -> SubscriptionOut:
+    def create(self, user_id: UUID, plan_id: UUID) -> SubscriptionOut:
         subscription = Subscription(
-            user_id=subscription_in.user_id,
-            plan_id=subscription_in.plan_id,
+            user_id=user_id,
+            plan_id=plan_id,
             active=True,
             started_at=datetime.datetime.now(),
         )
@@ -44,3 +44,8 @@ class SubscriptionRepository(ISubscriptionRepository):
         self.db.commit()
 
         return True
+
+    def find_by_user_id(self, user_id: UUID) -> SubscriptionOut:
+        return (
+            self.db.query(Subscription).filter(Subscription.user_id == user_id).first()
+        )

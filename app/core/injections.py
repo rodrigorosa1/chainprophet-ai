@@ -5,9 +5,11 @@ from app.repositories.sqlalchemy.forecast_analysis_repository import (
     ForecastAnalysisRepository,
 )
 from app.repositories.sqlalchemy.forecast_repository import ForecastRepository
+from app.repositories.sqlalchemy.history_repository import HistoryRepository
 from app.repositories.sqlalchemy.plan_repository import PlanRepository
 from app.repositories.sqlalchemy.subscription_repository import SubscriptionRepository
 from app.repositories.sqlalchemy.user_asset_repository import UserAssetRepository
+from app.services.account_service import AccountService
 from app.services.asset_service import AssetService
 from app.repositories.sqlalchemy.user_repository import UserRepository
 from app.services.backtest_service import BacktestService
@@ -37,7 +39,9 @@ from sqlalchemy.orm import Session
 def get_user_service(db: Session = Depends(get_db)) -> UserService:
     repo = UserRepository(db)
     user_asset_repo = UserAssetRepository(db)
-    return UserService(repo, user_asset_repo)
+    plan_repo = PlanRepository(db)
+    subscription_repo = SubscriptionRepository(db)
+    return UserService(repo, user_asset_repo, plan_repo, subscription_repo)
 
 
 def get_plan_service(db: Session = Depends(get_db)) -> PlanService:
@@ -58,6 +62,8 @@ def get_forecast_service(db: Session = Depends(get_db)) -> ForecastService:
     sentiment_service = SentimentService()
     signal_engine_service = SignalEngineService()
     backtest_service = BacktestService()
+    user_repo = UserRepository(db)
+    history_repo = HistoryRepository(db)
 
     return ForecastService(
         repo,
@@ -65,6 +71,8 @@ def get_forecast_service(db: Session = Depends(get_db)) -> ForecastService:
         sentiment_service,
         signal_engine_service,
         backtest_service,
+        user_repo,
+        history_repo,
     )
 
 
@@ -115,3 +123,17 @@ def get_forecast_llm_analyst_service(
 def get_asset_service(db: Session = Depends(get_db)) -> AssetService:
     repo = AssetRepository(db)
     return AssetService(repo)
+
+
+def get_account_service(db: Session = Depends(get_db)) -> AccountService:
+    user_repo = UserRepository(db)
+    plan_repo = PlanRepository(db)
+    subscription_repo = SubscriptionRepository(db)
+    history_repo = HistoryRepository(db)
+
+    return AccountService(
+        user_repo=user_repo,
+        plan_repo=plan_repo,
+        subscription_repo=subscription_repo,
+        history_repo=history_repo,
+    )

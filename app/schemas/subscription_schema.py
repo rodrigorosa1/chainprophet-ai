@@ -18,5 +18,6 @@ class SubscriptionOut(SubscriptionIn):
     canceled_at: Optional[datetime] = None
     user: UserOut
     plan: PlanOut
+    call_today: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)

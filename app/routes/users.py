@@ -131,8 +131,3 @@ def find_assets_by_user_id(
     except Exception as e:
         logger.error(f"Error in find assets by user id: {e}")
         raise HTTPException(status_code=400, detail=str(e))
-
-
-@router.get("/me", tags=[tags])
-def get_profile(current_user: Annotated[UserOut, Depends(get_current_user)]):
-    return current_user

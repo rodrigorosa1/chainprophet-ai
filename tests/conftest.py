@@ -51,6 +51,17 @@ def fake_user_payload():
 
 
 @pytest.fixture(scope="function")
+def fake_register_payload():
+    return {
+        "name": fake.name(),
+        "email": fake.email(),
+        "password": fake.password(),
+        "phone": fake.msisdn(),
+        "active": True,
+    }
+
+
+@pytest.fixture(scope="function")
 def fake_auth_payload():
     return {
         "email": "test@traderxai.com",
@@ -61,10 +72,20 @@ def fake_auth_payload():
 @pytest.fixture(scope="function")
 def fake_plan_payload():
     return {
-        "name": "Premium Plan",
+        "name": "Premium",
         "daily_amount": 10,
         "no_limit": False,
         "value": 9.99,
+    }
+
+
+@pytest.fixture(scope="function")
+def fake_trial_plan_payload():
+    return {
+        "name": "Trial",
+        "daily_amount": 10,
+        "no_limit": False,
+        "value": 0.0,
     }
 
 

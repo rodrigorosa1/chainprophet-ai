@@ -1,9 +1,12 @@
 from typing import List
 from uuid import UUID
 from app.constants.exceptions.messages import (
+    PlanNotFoundError,
     UserEmailDocumentAlreadyExistsError,
     UserNotFoundError,
 )
+from app.repositories.protocols.iplan_repository import IPlanRepository
+from app.repositories.protocols.isubscriptionRepository import ISubscriptionRepository
 from app.repositories.protocols.iuser_asset_repository import IUserAssetRepository
 from app.repositories.protocols.iuser_repository import IUserRepository
 from app.schemas.user_asset_schema import UserAssetOut
@@ -14,10 +17,27 @@ import string
 
 class UserService:
     def __init__(
-        self, user_repo: IUserRepository, user_asset_repo: IUserAssetRepository
+        self,
+        user_repo: IUserRepository,
+        user_asset_repo: IUserAssetRepository,
+        plan_repo: IPlanRepository,
+        subscription_repo: ISubscriptionRepository,
     ):
         self.user_repo = user_repo
         self.user_asset_repo = user_asset_repo
+        self.plan_repo = plan_repo
+        self.subscription_repo = subscription_repo
+
+    def register(self, user_in: UserIn) -> UserOut:
+        user = self.create(user_in)
+
+        plan = self.plan_repo.get_trial()
+        if not plan:
+            raise ValueError(PlanNotFoundError.MESSAGE)
+
+        self.subscription_repo.create(user.id, plan.id)
+
+        return user
 
     def create(self, user_in: UserIn) -> UserOut:
         email = self.user_repo.find_by_email(user_in.email)

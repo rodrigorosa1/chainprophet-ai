@@ -50,7 +50,7 @@ class TestSubscriptService(unittest.TestCase):
         plan_mock_repo.find_by_id.return_value = plan
 
         service = SubscriptionService(mock_repo, user_mock_repo, plan_mock_repo)
-        result = service.create(subscription_in)
+        result = service.create(user_id=user.id, plan_id=plan.id)
 
         self.assertEqual(result.user_id, subscription_in.user_id)
         self.assertEqual(result.plan_id, subscription_in.plan_id)
@@ -67,7 +67,7 @@ class TestSubscriptService(unittest.TestCase):
         subscription_in = SubscriptionIn(user_id=uuid4(), plan_id=plan.id)
 
         user_mock_repo = Mock()
-        user_mock_repo.find_by_id.return_value = []
+        user_mock_repo.find_by_id.return_value = None
 
         plan_mock_repo = Mock()
         plan_mock_repo.find_by_id.return_value = plan
@@ -75,7 +75,7 @@ class TestSubscriptService(unittest.TestCase):
         mock_repo = Mock()
         service = SubscriptionService(mock_repo, user_mock_repo, plan_mock_repo)
         with pytest.raises(ValueError) as exc_info:
-            service.create(subscription_in)
+            service.create(subscription_in.user_id, subscription_in.plan_id)
 
         assert str(exc_info.value) == "User not found"
 
@@ -101,6 +101,6 @@ class TestSubscriptService(unittest.TestCase):
         mock_repo = Mock()
         service = SubscriptionService(mock_repo, user_mock_repo, plan_mock_repo)
         with pytest.raises(ValueError) as exc_info:
-            service.create(subscription_in)
+            service.create(subscription_in.user_id, subscription_in.plan_id)
 
         assert str(exc_info.value) == "Plan not found"

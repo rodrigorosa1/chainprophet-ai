@@ -1,3 +1,4 @@
+from datetime import date, datetime
 from typing import List
 from uuid import UUID
 from sqlalchemy.orm import Session
@@ -21,3 +22,10 @@ class HistoryRepository(IHistoryRepository):
 
     def find_by_user(self, user_id: UUID) -> List[HistoryOut]:
         return self.db.query(History).filter(History.user_id == user_id).all()
+
+    def today_count(self, user_id: UUID) -> int:
+        return (
+            self.db.query(History)
+            .filter(History.user_id == user_id, History.created_at == date.today())
+            .count()
+        )

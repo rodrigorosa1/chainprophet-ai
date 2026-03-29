@@ -22,16 +22,16 @@ class SubscriptionService:
         self.user_repo = user_repo
         self.plan_repo = plan_repo
 
-    def create(self, subscription_in: SubscriptionIn) -> SubscriptionOut:
-        user = self.user_repo.find_by_id(subscription_in.user_id)
+    def create(self, user_id: UUID, plan_id: UUID) -> SubscriptionOut:
+        user = self.user_repo.find_by_id(user_id)
         if not user:
             raise ValueError(UserNotFoundError.MESSAGE)
 
-        plan = self.plan_repo.find_by_id(subscription_in.plan_id)
+        plan = self.plan_repo.find_by_id(plan_id)
         if not plan:
             raise ValueError(PlanNotFoundError.MESSAGE)
 
-        return self.subscription_repo.create(subscription_in)
+        return self.subscription_repo.create(user_id, plan_id)
 
     def find_by_id(self, id: UUID) -> SubscriptionOut:
         subscription = self.subscription_repo.find_by_id(id)

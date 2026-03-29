@@ -10,6 +10,7 @@ from app.routes.plans import router as plan_router
 from app.routes.subscriptions import router as subscription_router
 from app.routes.forecast import router as forecast_router
 from app.routes.analysis import router as analysis_router
+from app.routes.accounts import router as account_router
 
 settings = get_settings()
 
@@ -30,6 +31,7 @@ app.include_router(subscription_router, prefix="/subscriptions")
 app.include_router(prediction_router, prefix="/prediction")
 app.include_router(forecast_router, prefix="/forecast")
 app.include_router(analysis_router, prefix="/analysis")
+app.include_router(account_router, prefix="/accounts")
 
 if __name__ == "__main__":
     host_process = multiprocessing.Process(
