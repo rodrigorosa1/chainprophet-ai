@@ -89,7 +89,7 @@ def fake_trial_plan_payload():
     }
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def fake_subscription_payload():
     def _factory(plan_id=None, user_id=None):
         return {

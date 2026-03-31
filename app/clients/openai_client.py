@@ -1,15 +1,16 @@
 import json
 
 from openai import OpenAI
-
 from app.clients.interfaces.i_ai_client import IAiClient
-from app.core.config import Settings
+from app.core.config import get_settings
 
 
 class OpenAiClient(IAiClient):
     def __init__(self):
-        self.client = OpenAI(api_key=Settings.OPEN_AI_API_KEY)
-        self.model = Settings.OPEN_AI_MODEL
+        settings = get_settings()
+        self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        self.model = settings.OPENAI_MODEL
+        self.timeout_seconds = settings.OPENAI_TIMEOUT_SECONDS
 
     def analyze_forecast_failure(self, payload: dict) -> dict:
         prompt = self._build_prompt(payload)
@@ -26,7 +27,7 @@ class OpenAiClient(IAiClient):
             return json.loads(text_output)
         except json.JSONDecodeError:
             return {
-                "analysis_summary": "A resposta do modelo não veio em JSON válido. Mantido fallback de análise.",
+                "analysis_summary": "The model response was not in valid JSON. Parsing fallback maintained.",
                 "technical_explanation": text_output,
                 "business_explanation": None,
                 "evidence": [],
@@ -85,8 +86,9 @@ Payload:
         if hasattr(response, "output_text") and response.output_text:
             return response.output_text.strip()
 
-        # fallback mais defensivo
         try:
             return response.output[0].content[0].text.strip()
         except Exception:
-            raise ValueError("Não foi possível extrair o texto da resposta da OpenAI.")
+            raise ValueError(
+                "We were unable to extract the text from OpenAI's response."
+            )

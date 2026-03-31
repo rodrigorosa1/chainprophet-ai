@@ -9,3 +9,6 @@ from .forecast_point import ForecastPoint
 from .forecast_point_outcome import ForecastPointOutcome
 from .forecast_point_evaluation import ForecastPointEvaluation
 from .forecast_diagnostic import ForecastDiagnostic
+from .forecast_ai_report import ForecastAiReport
+from .user_assent import UserAsset
+from .asset import Asset

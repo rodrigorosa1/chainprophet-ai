@@ -1,3 +1,4 @@
+from app.clients.interfaces.i_ai_client import IAiClient
 from app.repositories.sqlalchemy.forecast_ai_report_repository import (
     ForecastAiReportRepository,
 )
@@ -7,7 +8,7 @@ class ForecastLlmAnalystService:
     def __init__(
         self,
         ai_report_repository: ForecastAiReportRepository,
-        ai_client,
+        ai_client: IAiClient,
     ):
         self.ai_report_repository = ai_report_repository
         self.ai_client = ai_client
@@ -25,8 +26,8 @@ class ForecastLlmAnalystService:
             except Exception as e:
                 ai_response = {
                     "analysis_summary": (
-                        "Falha ao gerar análise com LLM. "
-                        "Mantido diagnóstico determinístico como fallback."
+                        "Failed to generate analysis with LLM. "
+                        "Deterministic diagnostic maintained as fallback."
                     ),
                     "technical_explanation": str(e),
                     "business_explanation": None,
@@ -128,7 +129,7 @@ class ForecastLlmAnalystService:
         return {
             "analysis_summary": ai_response.get(
                 "analysis_summary",
-                f"Análise automática indisponível. Mantido diagnóstico {diagnostic.root_cause_category}.",
+                f"Automated analysis unavailable. Diagnosis maintained {diagnostic.root_cause_category}.",
             ),
             "technical_explanation": ai_response.get("technical_explanation"),
             "business_explanation": ai_response.get("business_explanation"),

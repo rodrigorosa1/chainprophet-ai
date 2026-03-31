@@ -108,7 +108,7 @@ class ForecastFailureClassifierService:
 
         if miss_ratio <= 0.20 and avg_percentage_error <= 2.0:
             return {
-                "root_cause_category": CauseCategoryEnum.NO_FAILURE_PATTERN.value,
+                "root_cause_category": CauseCategoryEnum.LOW_FAILURE_PATTERN.value,
                 "confidence_score": 0.88,
                 "summary": CauseSummaryEnum.NO_FAILURE_PATTERN.value,
                 "metrics_snapshot": metrics_snapshot,

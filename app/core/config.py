@@ -15,9 +15,9 @@ class Settings(BaseSettings):
     APPLICATION_URL: str
     TIMEZONE: str = "America/Sao_Paulo"
     POOL_RECYCLE: int = 3600
-    OPEN_AI_API_KEY: str
-    OPEN_AI_MODEL: str = "gpt-4.1-mini"
-    OPEN_AI_TIMEOUT_SECONDS: int = 60
+    OPENAI_API_KEY: str
+    OPENAI_MODEL: str = "gpt-4.1-mini"
+    OPENAI_TIMEOUT_SECONDS: int = 60
 
     class Config:
         env_file = ".env"
