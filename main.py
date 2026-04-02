@@ -3,7 +3,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from app.core.config import get_settings
-from app.routes.prediction import router as prediction_router
 from app.routes.users import router as user_router
 from app.routes.auth import router as auth_router
 from app.routes.plans import router as plan_router
@@ -28,7 +27,6 @@ app.include_router(user_router, prefix="/users")
 app.include_router(auth_router, prefix="/auth")
 app.include_router(plan_router, prefix="/plans")
 app.include_router(subscription_router, prefix="/subscriptions")
-app.include_router(prediction_router, prefix="/prediction")
 app.include_router(forecast_router, prefix="/forecast")
 app.include_router(analysis_router, prefix="/analysis")
 app.include_router(account_router, prefix="/accounts")

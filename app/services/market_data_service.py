@@ -37,7 +37,9 @@ class MarketDataService:
     ) -> pd.DataFrame:
         data = ticker_obj.history(period=period, interval=interval)
         if data is None or data.empty:
-            raise ValueError("Sem dados horários no Yahoo Finance para esse ticker.")
+            raise ValueError(
+                "No hourly data available in Yahoo Finance for this ticker."
+            )
         return data
 
     def build_prophet_dataframe(self, data: pd.DataFrame) -> pd.DataFrame:
@@ -55,6 +57,28 @@ class MarketDataService:
 
         df["ds"] = pd.to_datetime(df["ds"]).dt.tz_localize(None)
         return df
+
+    def get_reference_context(self, data: pd.DataFrame) -> dict:
+        if data is None or data.empty:
+            return {
+                "reference_price": None,
+                "reference_datetime": None,
+            }
+
+        clean = data.dropna(subset=["Close"]).copy()
+        if clean.empty:
+            return {
+                "reference_price": None,
+                "reference_datetime": None,
+            }
+
+        last_index = pd.to_datetime(clean.index[-1]).tz_localize(None)
+        last_close = float(clean["Close"].iloc[-1])
+
+        return {
+            "reference_price": round(last_close, 8),
+            "reference_datetime": last_index,
+        }
 
     def get_news_titles(self, ticker_obj, max_items: int = 20) -> list[str]:
         try:

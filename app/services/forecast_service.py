@@ -1,6 +1,9 @@
 from datetime import datetime
+
 import pandas as pd
 from prophet import Prophet
+
+from app.constants.enums.asset_enum import AssetEnum
 from app.repositories.protocols.iforescat_repository import IForecastRepository
 from app.repositories.protocols.ihistory_repository import IHistoryRepository
 from app.repositories.protocols.iuser_repository import IUserRepository
@@ -33,11 +36,32 @@ class ForecastService:
         self.user_repo = user_repo
         self.history_repo = history_repo
 
-    def _build_prophet_model(self):
+    def _get_model_config(self, ticker: str, hours: int) -> dict:
+        if ticker == AssetEnum.BTC_USD.value:
+            if hours <= 6:
+                return {
+                    "changepoint_prior_scale": 0.35,
+                    "seasonality_mode": "additive",
+                }
+            if hours <= 24:
+                return {
+                    "changepoint_prior_scale": 0.20,
+                    "seasonality_mode": "additive",
+                }
+
+        return {
+            "changepoint_prior_scale": 0.15,
+            "seasonality_mode": "additive",
+        }
+
+    def _build_prophet_model(self, ticker: str, hours: int):
+        config = self._get_model_config(ticker, hours)
+
         return Prophet(
             daily_seasonality=True,
             weekly_seasonality=True,
-            changepoint_prior_scale=0.15,
+            changepoint_prior_scale=config["changepoint_prior_scale"],
+            seasonality_mode=config["seasonality_mode"],
         )
 
     def _calculate_confidence(
@@ -68,7 +92,10 @@ class ForecastService:
         confidence = 82.0
         confidence -= min(interval_width_ratio * 100, 28.0)
         confidence -= min(anomaly_score * 4.0, 18.0)
-        confidence -= min(volatility * 400, 18.0)
+
+        # Reduced volatility penalty
+        confidence -= min(volatility * 200, 18.0)
+
         confidence += sentiment_avg * 7.0
 
         if rsi_value >= 75:
@@ -121,6 +148,7 @@ class ForecastService:
             ticker_obj, period="60d", interval="1h"
         )
         df = self.market_data_service.build_prophet_dataframe(data)
+        reference_context = self.market_data_service.get_reference_context(data)
 
         if len(df) < 24 * 14:
             raise ValueError(
@@ -155,13 +183,14 @@ class ForecastService:
 
         backtest = self.backtest_service.run(
             df=df,
+            ticker=ticker,
             horizon_hours=hours,
             windows=3,
             min_train_points=24 * 14,
             step_hours=12,
         )
 
-        model = self._build_prophet_model()
+        model = self._build_prophet_model(ticker=ticker, hours=hours)
         model.fit(df)
 
         future = model.make_future_dataframe(periods=hours, freq="h")
@@ -256,6 +285,12 @@ class ForecastService:
 
         return {
             "asset": asset_info,
+            "reference_price": reference_context["reference_price"],
+            "reference_datetime": (
+                reference_context["reference_datetime"].strftime("%Y-%m-%d %H:%M:%S")
+                if reference_context["reference_datetime"] is not None
+                else None
+            ),
             "backtest": backtest,
             "forecast": response,
         }
@@ -291,6 +326,8 @@ class ForecastService:
                             "symbol": ticker,
                             "code": ticker.split("-")[0] if "-" in ticker else ticker,
                         },
+                        "reference_price": None,
+                        "reference_datetime": None,
                         "backtest": {
                             "windows_used": 0,
                             "horizon_hours": hours,
@@ -341,6 +378,10 @@ class ForecastService:
                 asset_name=asset_data.get("name"),
                 asset_symbol=asset_data.get("symbol"),
                 asset_code=asset_data.get("code"),
+                reference_price=result.get("reference_price"),
+                reference_datetime=self._parse_datetime(
+                    result.get("reference_datetime")
+                ),
                 error=result.get("error"),
             )
 

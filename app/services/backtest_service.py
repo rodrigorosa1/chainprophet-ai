@@ -4,11 +4,32 @@ from prophet import Prophet
 
 
 class BacktestService:
-    def _build_prophet_model(self):
+    def _get_model_config(self, ticker: str, horizon_hours: int) -> dict:
+        if ticker == "BTC-USD":
+            if horizon_hours <= 6:
+                return {
+                    "changepoint_prior_scale": 0.35,
+                    "seasonality_mode": "additive",
+                }
+            if horizon_hours <= 24:
+                return {
+                    "changepoint_prior_scale": 0.20,
+                    "seasonality_mode": "additive",
+                }
+
+        return {
+            "changepoint_prior_scale": 0.15,
+            "seasonality_mode": "additive",
+        }
+
+    def _build_prophet_model(self, ticker: str, horizon_hours: int):
+        config = self._get_model_config(ticker, horizon_hours)
+
         return Prophet(
             daily_seasonality=True,
             weekly_seasonality=True,
-            changepoint_prior_scale=0.15,
+            changepoint_prior_scale=config["changepoint_prior_scale"],
+            seasonality_mode=config["seasonality_mode"],
         )
 
     def _score_backtest_quality(
@@ -26,6 +47,7 @@ class BacktestService:
     def run(
         self,
         df: pd.DataFrame,
+        ticker: str,
         horizon_hours: int = 24,
         windows: int = 3,
         min_train_points: int = 24 * 14,
@@ -62,7 +84,10 @@ class BacktestService:
                 continue
 
             try:
-                model = self._build_prophet_model()
+                model = self._build_prophet_model(
+                    ticker=ticker,
+                    horizon_hours=horizon_hours,
+                )
                 model.fit(train_df)
 
                 future = model.make_future_dataframe(periods=horizon_hours, freq="h")
