@@ -18,7 +18,10 @@ class ForecastPointEvaluation(ModelBase):
     )
 
     reference_price = Column(Float(), nullable=True)
-    estimated_price = Column(Float(), nullable=False)
+
+    target_price = Column(Float(), nullable=False)
+    lower_bound_price = Column(Float(), nullable=False)
+    upper_bound_price = Column(Float(), nullable=False)
     actual_price = Column(Float(), nullable=False)
 
     absolute_error = Column(Float(), nullable=False)
@@ -28,7 +31,9 @@ class ForecastPointEvaluation(ModelBase):
     actual_direction = Column(String(20), nullable=False)
     direction_correct = Column(Boolean, nullable=False)
 
-    within_tolerance = Column(Boolean, nullable=False)
+    within_forecast_range = Column(Boolean, nullable=False)
+    range_deviation_percent = Column(Float(), nullable=False)
+
     tolerance_percent = Column(Float(), nullable=False)
     evaluation_status = Column(String(30), nullable=False)
 

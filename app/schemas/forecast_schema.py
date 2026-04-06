@@ -20,7 +20,9 @@ class BacktestResponse(BaseModel):
 
 class ForecastItemResponse(BaseModel):
     datetime: str
-    estimated_price: float
+    target_price: float
+    lower_bound_price: float
+    upper_bound_price: float
     confidence_percent: float
 
 

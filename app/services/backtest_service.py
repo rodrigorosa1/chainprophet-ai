@@ -57,10 +57,10 @@ class BacktestService:
             return {
                 "windows_used": 0,
                 "horizon_hours": horizon_hours,
-                "mae": None,
-                "rmse": None,
-                "mape_percent": None,
-                "directional_accuracy_percent": None,
+                "mae": 0.0,
+                "rmse": 0.0,
+                "mape_percent": 0.0,
+                "directional_accuracy_percent": 0.0,
                 "quality_score_percent": 50.0,
             }
 
@@ -136,10 +136,10 @@ class BacktestService:
             return {
                 "windows_used": 0,
                 "horizon_hours": horizon_hours,
-                "mae": None,
-                "rmse": None,
-                "mape_percent": None,
-                "directional_accuracy_percent": None,
+                "mae": 0.0,
+                "rmse": 0.0,
+                "mape_percent": 0.0,
+                "directional_accuracy_percent": 0.0,
                 "quality_score_percent": 50.0,
             }
 

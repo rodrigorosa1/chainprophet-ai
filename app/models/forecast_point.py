@@ -10,7 +10,9 @@ class ForecastPoint(ModelBase):
     forecast_asset_id = Column(ForeignKey("forecast_assets.id"), nullable=False)
 
     forecast_datetime = Column(DateTime, nullable=False)
-    estimated_price = Column(Float(), nullable=False)
+    target_price = Column(Float(), nullable=False)
+    lower_bound_price = Column(Float(), nullable=False)
+    upper_bound_price = Column(Float(), nullable=False)
     confidence_percent = Column(Float(), nullable=False)
 
     forecast_asset = relationship("ForecastAsset", back_populates="forecast_points")

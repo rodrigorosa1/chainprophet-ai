@@ -1,4 +1,5 @@
 from datetime import datetime
+import math
 
 import pandas as pd
 from prophet import Prophet
@@ -15,9 +16,12 @@ from app.models.forecast_request import ForecastRequest
 from app.models.forecast_asset import ForecastAsset
 from app.models.forecast_backtest import ForecastBacktest
 from app.models.forecast_point import ForecastPoint
+from app.services.ml_forecast_service import MlForecastService
 
 
 class ForecastService:
+    FORECAST_RANGE_PERCENT = 0.04
+
     def __init__(
         self,
         forecast_repo: IForecastRepository,
@@ -27,6 +31,7 @@ class ForecastService:
         backtest_service: BacktestService,
         user_repo: IUserRepository,
         history_repo: IHistoryRepository,
+        ml_forecast_service: MlForecastService,
     ):
         self.market_data_service = market_data_service
         self.sentiment_service = sentiment_service
@@ -35,17 +40,18 @@ class ForecastService:
         self.forecast_repo = forecast_repo
         self.user_repo = user_repo
         self.history_repo = history_repo
+        self.ml_forecast_service = ml_forecast_service
 
     def _get_model_config(self, ticker: str, hours: int) -> dict:
         if ticker == AssetEnum.BTC_USD.value:
             if hours <= 6:
                 return {
-                    "changepoint_prior_scale": 0.35,
+                    "changepoint_prior_scale": 0.45,
                     "seasonality_mode": "additive",
                 }
             if hours <= 24:
                 return {
-                    "changepoint_prior_scale": 0.20,
+                    "changepoint_prior_scale": 0.30,
                     "seasonality_mode": "additive",
                 }
 
@@ -76,26 +82,23 @@ class ForecastService:
         market_regime: dict,
         backtest: dict,
     ) -> float:
-        estimated_price = float(row["yhat_adj"])
-        lower = float(row["yhat_lower_adj"])
-        upper = float(row["yhat_upper_adj"])
+        target_price = float(row["target_price"])
+        lower = float(row["lower_bound_price"])
+        upper = float(row["upper_bound_price"])
 
-        if estimated_price <= 0:
+        if target_price <= 0:
             return 0.0
 
-        interval_width_ratio = (upper - lower) / estimated_price
+        interval_width_ratio = (upper - lower) / target_price
         relative_volume = volume_signal.get("relative_volume", 1.0)
         direction_confirmation = volume_signal.get("direction_confirmation", 0.0)
         regime_name = market_regime.get("name", "sideways")
         backtest_quality = float(backtest.get("quality_score_percent", 50.0) or 50.0)
 
         confidence = 82.0
-        confidence -= min(interval_width_ratio * 100, 28.0)
+        confidence -= min(interval_width_ratio * 100, 26.0)
         confidence -= min(anomaly_score * 4.0, 18.0)
-
-        # Reduced volatility penalty
-        confidence -= min(volatility * 200, 18.0)
-
+        confidence -= min(volatility * 250, 22.0)
         confidence += sentiment_avg * 7.0
 
         if rsi_value >= 75:
@@ -136,9 +139,129 @@ class ForecastService:
             confidence -= 1.5
 
         confidence += ((backtest_quality - 50.0) / 50.0) * 12.0
-
         confidence = max(5.0, min(95.0, confidence))
         return round(confidence, 2)
+
+    def _calculate_dynamic_range_percent(
+        self,
+        volatility: float,
+        backtest_quality: float,
+        market_regime: dict,
+        current_dt: datetime | None = None,
+    ) -> float:
+        base = self.FORECAST_RANGE_PERCENT
+
+        if volatility > 0.02:
+            base += 0.025
+        elif volatility > 0.01:
+            base += 0.015
+
+        if backtest_quality < 55:
+            base += 0.015
+
+        if market_regime["name"] in [
+            "high_volatility_bullish",
+            "high_volatility_bearish",
+        ]:
+            base += 0.02
+
+        if current_dt is not None and current_dt.weekday() >= 5:
+            base += 0.01
+
+        return min(base, 0.12)
+
+    def _calculate_trend_following_boost(self, close_series: pd.Series) -> float:
+        short_trend = close_series.pct_change(3).mean()
+        medium_trend = close_series.pct_change(12).mean()
+
+        boost = 0.0
+
+        if pd.notna(short_trend) and short_trend > 0.002:
+            boost += min(short_trend * 25, 0.06)
+
+        if pd.notna(medium_trend) and medium_trend > 0.005:
+            boost += min(medium_trend * 20, 0.08)
+
+        return boost
+
+    def _detect_bull_run(self, close_series: pd.Series) -> bool:
+        if len(close_series) < 6:
+            return False
+
+        recent_trend = close_series.pct_change(6).mean()
+        slope = (close_series.iloc[-1] - close_series.iloc[-6]) / close_series.iloc[-6]
+
+        return bool(pd.notna(recent_trend) and recent_trend > 0.003 and slope > 0.01)
+
+    def _bias_correction_from_recent_trend(self, close_series: pd.Series) -> float:
+        if len(close_series) < 6:
+            return 1.0
+
+        recent_prices = close_series.tail(6)
+        trend = (recent_prices.iloc[-1] - recent_prices.iloc[0]) / recent_prices.iloc[0]
+
+        if trend > 0.015:
+            return 1.03
+        if trend > 0.01:
+            return 1.02
+        if trend > 0.005:
+            return 1.01
+
+        if trend < -0.015:
+            return 0.97
+        if trend < -0.01:
+            return 0.98
+        if trend < -0.005:
+            return 0.99
+
+        return 1.0
+
+    def _hour_session_factor(self, dt_value: datetime) -> float:
+        hour = dt_value.hour
+
+        # overlap London/US costuma trazer mais força direcional
+        if 12 <= hour <= 16:
+            return 1.015
+
+        # madrugada UTC costuma ter menor liquidez e mais ruído
+        if 0 <= hour <= 4:
+            return 0.995
+
+        return 1.0
+
+    def _weekend_holiday_factor(self, dt_value: datetime) -> float:
+        # sem calendário formal de feriados aqui; ao menos trata sábado/domingo
+        if dt_value.weekday() >= 5:
+            return 1.01
+        return 1.0
+
+    def _trend_multiplier(self, close_series: pd.Series) -> float:
+        trend_strength = close_series.pct_change(6).mean()
+
+        multiplier = 1.0
+
+        if pd.notna(trend_strength):
+            if trend_strength > 0.002:
+                multiplier += min(trend_strength * 50, 0.15)
+            elif trend_strength < -0.002:
+                multiplier -= min(abs(trend_strength) * 30, 0.10)
+
+        return multiplier
+
+    def _historical_error_bias(self, ticker: str) -> float:
+        """
+        Gancho para correção por erro histórico real.
+        Se você ainda não tiver repositório/método para isso, retorna 1.0.
+        """
+        try:
+            if hasattr(self.forecast_repo, "get_recent_asset_bias"):
+                bias = self.forecast_repo.get_recent_asset_bias(ticker)
+                if bias is not None:
+                    return float(bias)
+        except Exception:
+            pass
+
+        return 1.0
 
     def _forecast_single_asset(self, ticker: str, hours: int = 24) -> dict:
         ticker_obj = self.market_data_service.get_ticker(ticker)
@@ -156,7 +279,6 @@ class ForecastService:
             )
 
         close_series = data["Close"].dropna()
-
         anomaly_score = self.signal_engine_service.detect_anomaly_score(
             close_series, lookback_hours=24 * 14
         )
@@ -209,7 +331,7 @@ class ForecastService:
 
         trend_bonus = 1.0
         if trend["direction"] == "up":
-            trend_bonus += min(trend["strength"], 0.025)
+            trend_bonus += min(trend["strength"], 0.05)
         elif trend["direction"] == "down":
             trend_bonus -= min(trend["strength"], 0.02)
 
@@ -228,6 +350,16 @@ class ForecastService:
             * 0.04
         )
 
+        momentum = close_series.pct_change(6).mean()
+        momentum_factor = 1.0
+        if pd.notna(momentum):
+            if momentum > 0.002:
+                momentum_factor += min(momentum * 10, 0.03)
+            elif momentum < -0.002:
+                momentum_factor -= min(abs(momentum) * 10, 0.03)
+
+        trend_follow_boost = self._calculate_trend_following_boost(close_series)
+
         adjusted_factor = (
             sentiment_factor
             * anomaly_penalty
@@ -236,35 +368,48 @@ class ForecastService:
             * volume_factor
             * regime_factor
             * backtest_factor
+            * momentum_factor
+            * (1 + trend_follow_boost)
         )
 
-        adjusted = base.copy()
-        adjusted["yhat_adj"] = (adjusted["yhat"] * adjusted_factor).astype(float)
+        if self._detect_bull_run(close_series):
+            adjusted_factor *= 1.05
 
-        widen = (
-            1.0 + (min(anomaly_score, 10.0) / 10.0) * 0.10 + min(volatility * 8, 0.20)
-        )
-
-        if market_regime["name"] in [
-            "high_volatility_bullish",
-            "high_volatility_bearish",
-        ]:
-            widen += 0.05
-
-        if float(backtest.get("quality_score_percent", 50.0)) < 55.0:
-            widen += 0.04
-
-        center = adjusted["yhat_adj"]
-        lower_dist = (base["yhat"] - base["yhat_lower"]).abs() * widen
-        upper_dist = (base["yhat_upper"] - base["yhat"]).abs() * widen
-
-        adjusted["yhat_lower_adj"] = (center - lower_dist).astype(float)
-        adjusted["yhat_upper_adj"] = (center + upper_dist).astype(float)
+        adjusted_factor *= self._bias_correction_from_recent_trend(close_series)
+        adjusted_factor *= self._historical_error_bias(ticker)
 
         response = []
-        for _, row in adjusted.iterrows():
+        for _, row in base.iterrows():
+            forecast_dt = pd.to_datetime(row["ds"]).to_pydatetime()
+
+            trend_multiplier = self._trend_multiplier(close_series)
+            time_factor = self._hour_session_factor(forecast_dt)
+            weekend_factor = self._weekend_holiday_factor(forecast_dt)
+
+            target_price = float(row["yhat"]) * adjusted_factor
+            target_price *= trend_multiplier
+            target_price *= time_factor
+            target_price *= weekend_factor
+            target_price = round(target_price, 2)
+
+            range_percent = self._calculate_dynamic_range_percent(
+                volatility=volatility,
+                backtest_quality=float(backtest.get("quality_score_percent", 50)),
+                market_regime=market_regime,
+                current_dt=forecast_dt,
+            )
+
+            lower_bound_price = round(target_price * (1 - range_percent), 2)
+            upper_bound_price = round(target_price * (1 + range_percent), 2)
+
+            enriched_row = {
+                "target_price": target_price,
+                "lower_bound_price": lower_bound_price,
+                "upper_bound_price": upper_bound_price,
+            }
+
             confidence_percent = self._calculate_confidence(
-                row=row,
+                row=enriched_row,
                 anomaly_score=anomaly_score,
                 sentiment_avg=sentiment_avg,
                 volatility=volatility,
@@ -278,7 +423,9 @@ class ForecastService:
             response.append(
                 {
                     "datetime": pd.to_datetime(row["ds"]).strftime("%Y-%m-%d %H:%M:%S"),
-                    "estimated_price": round(float(row["yhat_adj"]), 2),
+                    "target_price": target_price,
+                    "lower_bound_price": lower_bound_price,
+                    "upper_bound_price": upper_bound_price,
                     "confidence_percent": confidence_percent,
                 }
             )
@@ -316,8 +463,26 @@ class ForecastService:
 
         for ticker in unique_tickers:
             try:
-                result = self._forecast_single_asset(ticker=ticker, hours=hours)
+                if (
+                    hasattr(self, "ml_forecast_service")
+                    and self.ml_forecast_service is not None
+                    and self.ml_forecast_service.can_forecast(
+                        ticker=ticker,
+                        horizon_hours=hours,
+                    )
+                ):
+                    result = self.ml_forecast_service.forecast_asset(
+                        ticker=ticker,
+                        horizon_hours=hours,
+                    )
+                else:
+                    result = self._forecast_single_asset(
+                        ticker=ticker,
+                        hours=hours,
+                    )
+
                 results.append(result)
+
             except Exception as e:
                 results.append(
                     {
@@ -331,10 +496,10 @@ class ForecastService:
                         "backtest": {
                             "windows_used": 0,
                             "horizon_hours": hours,
-                            "mae": None,
-                            "rmse": None,
-                            "mape_percent": None,
-                            "directional_accuracy_percent": None,
+                            "mae": 0.0,
+                            "rmse": 0.0,
+                            "mape_percent": 0.0,
+                            "directional_accuracy_percent": 0.0,
                             "quality_score_percent": 0.0,
                         },
                         "forecast": [],
@@ -387,15 +552,19 @@ class ForecastService:
 
             if backtest_data:
                 forecast_backtest = ForecastBacktest(
-                    windows_used=backtest_data.get("windows_used"),
-                    horizon_hours=backtest_data.get("horizon_hours"),
-                    mae=backtest_data.get("mae"),
-                    rmse=backtest_data.get("rmse"),
-                    mape_percent=backtest_data.get("mape_percent"),
+                    windows_used=backtest_data.get("windows_used", 0),
+                    horizon_hours=backtest_data.get("horizon_hours", 0),
+                    mae=backtest_data.get("mae", 0.0) or 0.0,
+                    rmse=backtest_data.get("rmse", 0.0) or 0.0,
+                    mape_percent=backtest_data.get("mape_percent", 0.0) or 0.0,
                     directional_accuracy_percent=backtest_data.get(
-                        "directional_accuracy_percent"
-                    ),
-                    quality_score_percent=backtest_data.get("quality_score_percent"),
+                        "directional_accuracy_percent", 0.0
+                    )
+                    or 0.0,
+                    quality_score_percent=backtest_data.get(
+                        "quality_score_percent", 0.0
+                    )
+                    or 0.0,
                 )
 
                 forecast_asset.backtest = forecast_backtest
@@ -403,7 +572,9 @@ class ForecastService:
             for point in forecast_data:
                 forecast_point = ForecastPoint(
                     forecast_datetime=self._parse_datetime(point.get("datetime")),
-                    estimated_price=point.get("estimated_price"),
+                    target_price=point.get("target_price"),
+                    lower_bound_price=point.get("lower_bound_price"),
+                    upper_bound_price=point.get("upper_bound_price"),
                     confidence_percent=point.get("confidence_percent"),
                 )
 

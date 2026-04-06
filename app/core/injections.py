@@ -13,10 +13,14 @@ from app.services.account_service import AccountService
 from app.services.asset_service import AssetService
 from app.repositories.sqlalchemy.user_repository import UserRepository
 from app.services.backtest_service import BacktestService
+from app.services.feature_engineering_service import FeatureEngineeringService
 from app.services.forecast_evaluation_service import ForecastEvaluationService
 from app.services.forecast_outcome_service import ForecastOutcomeService
 from app.services.forecast_service import ForecastService
 from app.services.market_data_service import MarketDataService
+from app.services.ml_forecast_service import MlForecastService
+from app.services.ml_model_service import MlModelService
+from app.services.ml_training_service import MlTrainingService
 from app.services.plan_service import PlanService
 from app.services.sentiment_service import SentimentService
 from app.services.signal_engine_service import SignalEngineService
@@ -64,6 +68,7 @@ def get_forecast_service(db: Session = Depends(get_db)) -> ForecastService:
     backtest_service = BacktestService()
     user_repo = UserRepository(db)
     history_repo = HistoryRepository(db)
+    ml_forecast_service = get_ml_forecast_service()
 
     return ForecastService(
         repo,
@@ -73,6 +78,31 @@ def get_forecast_service(db: Session = Depends(get_db)) -> ForecastService:
         backtest_service,
         user_repo,
         history_repo,
+        ml_forecast_service,
+    )
+
+
+def get_ml_forecast_service() -> MlForecastService:
+    market_data_service = MarketDataService()
+    feature_engineering_service = FeatureEngineeringService()
+    ml_model_service = MlModelService()
+
+    return MlForecastService(
+        market_data_service=market_data_service,
+        feature_engineering_service=feature_engineering_service,
+        ml_model_service=ml_model_service,
+    )
+
+
+def get_ml_training_service() -> MlTrainingService:
+    market_data_service = MarketDataService()
+    feature_engineering_service = FeatureEngineeringService()
+    ml_model_service = MlModelService()
+
+    return MlTrainingService(
+        market_data_service=market_data_service,
+        feature_engineering_service=feature_engineering_service,
+        ml_model_service=ml_model_service,
     )
 
 

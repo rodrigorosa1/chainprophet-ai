@@ -6,6 +6,7 @@ from app.core.injections import (
     get_forecast_failure_classifier_service,
     get_forecast_outcome_service,
     get_forecast_evaluation_service,
+    get_ml_training_service,
 )
 from app.services.forecast_failure_classifier_service import (
     ForecastFailureClassifierService,
@@ -14,6 +15,7 @@ from app.services.forecast_outcome_service import ForecastOutcomeService
 from app.services.forecast_evaluation_service import ForecastEvaluationService
 from app.core.injections import get_forecast_llm_analyst_service
 from app.services.forecast_llm_analyst_service import ForecastLlmAnalystService
+from app.services.ml_training_service import MlTrainingService
 
 router = APIRouter()
 
@@ -96,3 +98,18 @@ def llm_analyze_failures(
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/train-ml", tags=[tags])
+def train_ml_models(
+    ticker: str = Query(..., description="Example: BTC-USD"),
+    hours: int = Query(..., ge=12, description="Minimum 12 hours"),
+    training_service: MlTrainingService = Depends(get_ml_training_service),
+):
+    try:
+        return training_service.train_asset_models(
+            ticker=ticker.strip().upper(),
+            horizon_hours=hours,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
