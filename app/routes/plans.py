@@ -22,7 +22,9 @@ tags: str = "Plans"
     tags=[tags],
 )
 def create(
-    plan_in: PlanIn, plan_service: Annotated[PlanService, Depends(get_plan_service)]
+    plan_in: PlanIn,
+    plan_service: Annotated[PlanService, Depends(get_plan_service)],
+    current_user: Annotated[object, Depends(get_current_user)],
 ):
     try:
         plan = plan_service.create(plan_in)
@@ -43,7 +45,6 @@ def create(
 def find_by_id(
     id: UUID,
     plan_service: Annotated[PlanService, Depends(get_plan_service)],
-    current_user: Annotated[object, Depends(get_current_user)],
 ):
     try:
         plan = plan_service.find_by_id(id)
@@ -62,7 +63,6 @@ def find_by_id(
 )
 def find_all(
     plan_service: Annotated[PlanService, Depends(get_plan_service)],
-    current_user: Annotated[object, Depends(get_current_user)],
 ):
     try:
         plans = plan_service.find_all()

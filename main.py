@@ -29,7 +29,7 @@ app.include_router(plan_router, prefix="/plans")
 app.include_router(subscription_router, prefix="/subscriptions")
 app.include_router(forecast_router, prefix="/forecast")
 app.include_router(analysis_router, prefix="/analysis")
-app.include_router(account_router, prefix="/accounts")
+app.include_router(account_router, prefix="/account")
 
 if __name__ == "__main__":
     host_process = multiprocessing.Process(

@@ -2,7 +2,7 @@ version: '3'
 
 services:
   ai:
-    container_name: traderx-ai
+    container_name: chainprophet-ai
     build: ./infra/
     env_file:
       - .env
@@ -16,7 +16,7 @@ services:
       - app-network
 
   webserver:
-    container_name: traderx-webserver
+    container_name: chainprophet-webserver
     image: nginx:alpine
     restart: unless-stopped
     tty: true
