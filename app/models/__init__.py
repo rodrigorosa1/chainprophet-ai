@@ -12,3 +12,4 @@ from .forecast_diagnostic import ForecastDiagnostic
 from .forecast_ai_report import ForecastAiReport
 from .user_assent import UserAsset
 from .asset import Asset
+from .job_execution import JobExecution
