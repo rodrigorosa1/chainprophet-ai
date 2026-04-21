@@ -8,7 +8,6 @@ from app.services.feature_engineering_service import FeatureEngineeringService
 from app.services.ml_model_service import MlModelService
 from app.services.ml_training_service import MlTrainingService
 
-
 JOB_NAME = "train_ml_models"
 
 
@@ -77,7 +76,6 @@ def run() -> dict:
 
 if __name__ == "__main__":
     result = run()
-    print(result)
 
     if result["status"] == "failed":
         sys.exit(1)

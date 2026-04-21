@@ -1,5 +1,4 @@
 from datetime import datetime
-import math
 
 import pandas as pd
 from prophet import Prophet
@@ -442,14 +441,14 @@ class ForecastService:
             "forecast": response,
         }
 
-    def forecast_prices(
-        self, api_key: str, tickers: list[str], hours: int = 24
-    ) -> dict:
-        user = self.user_repo.find_by_api_key(api_key)
+    def generate_forecast(self, tickers: list[str], hours: int = 24) -> dict:
+        forecast = self.forecast_prices(tickers=tickers, hours=hours)
 
-        if not user or not user.active:
-            raise ValueError("Invalid or inactive API key.")
+        self.save_forecast_response(response_data=forecast)
 
+        return forecast
+
+    def forecast_prices(self, tickers: list[str], hours: int = 24) -> dict:
         results = []
 
         unique_tickers = []
@@ -513,9 +512,6 @@ class ForecastService:
             "total_assets": len(results),
             "results": results,
         }
-
-        self.save_forecast_response(response_data=forecast)
-        self.history_repo.create(user_id=user.id)
 
         return forecast
 

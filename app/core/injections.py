@@ -10,6 +10,7 @@ from app.repositories.sqlalchemy.plan_repository import PlanRepository
 from app.repositories.sqlalchemy.subscription_repository import SubscriptionRepository
 from app.repositories.sqlalchemy.user_asset_repository import UserAssetRepository
 from app.services.account_service import AccountService
+from app.services.api_customer_service import ApiCustomerService
 from app.services.asset_service import AssetService
 from app.repositories.sqlalchemy.user_repository import UserRepository
 from app.services.backtest_service import BacktestService
@@ -58,6 +59,30 @@ def get_subscription_service(db: Session = Depends(get_db)) -> SubscriptionServi
     user_repo = UserRepository(db)
     plan_repo = PlanRepository(db)
     return SubscriptionService(repo, user_repo, plan_repo)
+
+
+def get_api_customer_service(
+    db: Session = Depends(get_db),
+) -> ApiCustomerService:
+    forecast_service = get_forecast_service(db)
+    market_data_service = MarketDataService()
+    sentiment_service = SentimentService()
+    signal_engine_service = SignalEngineService()
+    backtest_service = BacktestService()
+    user_repository = UserRepository(db)
+    history_repository = HistoryRepository(db)
+    ml_forecast_service = get_ml_forecast_service()
+
+    return ApiCustomerService(
+        forecast_service=forecast_service,
+        market_data_service=market_data_service,
+        sentiment_service=sentiment_service,
+        signal_engine_service=signal_engine_service,
+        backtest_service=backtest_service,
+        user_repository=user_repository,
+        history_repository=history_repository,
+        ml_forecast_service=ml_forecast_service,
+    )
 
 
 def get_forecast_service(db: Session = Depends(get_db)) -> ForecastService:
