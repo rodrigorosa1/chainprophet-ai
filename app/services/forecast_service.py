@@ -218,18 +218,15 @@ class ForecastService:
     def _hour_session_factor(self, dt_value: datetime) -> float:
         hour = dt_value.hour
 
-        # overlap London/US costuma trazer mais força direcional
         if 12 <= hour <= 16:
             return 1.015
 
-        # madrugada UTC costuma ter menor liquidez e mais ruído
         if 0 <= hour <= 4:
             return 0.995
 
         return 1.0
 
     def _weekend_holiday_factor(self, dt_value: datetime) -> float:
-        # sem calendário formal de feriados aqui; ao menos trata sábado/domingo
         if dt_value.weekday() >= 5:
             return 1.01
         return 1.0
@@ -248,10 +245,6 @@ class ForecastService:
         return multiplier
 
     def _historical_error_bias(self, ticker: str) -> float:
-        """
-        Gancho para correção por erro histórico real.
-        Se você ainda não tiver repositório/método para isso, retorna 1.0.
-        """
         try:
             if hasattr(self.forecast_repo, "get_recent_asset_bias"):
                 bias = self.forecast_repo.get_recent_asset_bias(ticker)
@@ -261,6 +254,46 @@ class ForecastService:
             pass
 
         return 1.0
+
+    def _calculate_period_direction(
+        self,
+        reference_price: float | None,
+        forecast_points: list[dict],
+    ) -> tuple[str, float]:
+        if (
+            reference_price is None
+            or not forecast_points
+            or forecast_points[-1].get("target_price") is None
+        ):
+            return "unknown", 0.0
+
+        last_price = float(forecast_points[-1]["target_price"])
+        variation = ((last_price - reference_price) / reference_price) * 100.0
+
+        if abs(variation) < 0.2:
+            direction = "neutral"
+        elif variation > 0:
+            direction = "up"
+        else:
+            direction = "down"
+
+        return direction, round(variation, 2)
+
+    def _append_period_direction_to_result(self, result: dict) -> dict:
+        asset_info = result.get("asset", {}) or {}
+        reference_price = result.get("reference_price")
+        forecast_points = result.get("forecast", []) or []
+
+        direction, variation = self._calculate_period_direction(
+            reference_price=reference_price,
+            forecast_points=forecast_points,
+        )
+
+        asset_info["directional"] = direction
+        asset_info["directional_percent_period"] = variation
+        result["asset"] = asset_info
+
+        return result
 
     def _forecast_single_asset(self, ticker: str, hours: int = 24) -> dict:
         ticker_obj = self.market_data_service.get_ticker(ticker)
@@ -429,7 +462,7 @@ class ForecastService:
                 }
             )
 
-        return {
+        result = {
             "asset": asset_info,
             "reference_price": reference_context["reference_price"],
             "reference_datetime": (
@@ -440,6 +473,8 @@ class ForecastService:
             "backtest": backtest,
             "forecast": response,
         }
+
+        return self._append_period_direction_to_result(result)
 
     def generate_forecast(self, tickers: list[str], hours: int = 24) -> dict:
         forecast = self.forecast_prices(tickers=tickers, hours=hours)
@@ -474,6 +509,7 @@ class ForecastService:
                         ticker=ticker,
                         horizon_hours=hours,
                     )
+                    result = self._append_period_direction_to_result(result)
                 else:
                     result = self._forecast_single_asset(
                         ticker=ticker,
@@ -483,28 +519,29 @@ class ForecastService:
                 results.append(result)
 
             except Exception as e:
-                results.append(
-                    {
-                        "asset": {
-                            "name": ticker,
-                            "symbol": ticker,
-                            "code": ticker.split("-")[0] if "-" in ticker else ticker,
-                        },
-                        "reference_price": None,
-                        "reference_datetime": None,
-                        "backtest": {
-                            "windows_used": 0,
-                            "horizon_hours": hours,
-                            "mae": 0.0,
-                            "rmse": 0.0,
-                            "mape_percent": 0.0,
-                            "directional_accuracy_percent": 0.0,
-                            "quality_score_percent": 0.0,
-                        },
-                        "forecast": [],
-                        "error": str(e),
-                    }
-                )
+                error_result = {
+                    "asset": {
+                        "name": ticker,
+                        "symbol": ticker,
+                        "code": ticker.split("-")[0] if "-" in ticker else ticker,
+                        "directional": "unknown",
+                        "directional_percent_period": 0.0,
+                    },
+                    "reference_price": None,
+                    "reference_datetime": None,
+                    "backtest": {
+                        "windows_used": 0,
+                        "horizon_hours": hours,
+                        "mae": 0.0,
+                        "rmse": 0.0,
+                        "mape_percent": 0.0,
+                        "directional_accuracy_percent": 0.0,
+                        "quality_score_percent": 0.0,
+                    },
+                    "forecast": [],
+                    "error": str(e),
+                }
+                results.append(error_result)
 
         forecast = {
             "timeframe": "1h",
