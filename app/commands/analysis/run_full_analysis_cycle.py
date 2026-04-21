@@ -1,4 +1,4 @@
-from app.core.database import Session
+from app.core.database import SessionLocal
 from app.repositories.sqlalchemy.forecast_analysis_repository import (
     ForecastAnalysisRepository,
 )
@@ -15,11 +15,16 @@ JOB_NAME = "analysis_cycle_full"
 
 
 def run() -> dict:
-    db = Session()
+    db = SessionLocal()
+    execution = None
+    job_execution_service = JobExecutionService(JobExecutionRepository(db))
 
     try:
-        job_execution_service = JobExecutionService(JobExecutionRepository(db))
-        execution = job_execution_service.start(job_name=JOB_NAME)
+        execution = job_execution_service.start(
+            job_name=JOB_NAME,
+            metadata_json={"limit": 1000, "tolerance_percent": 2.0},
+        )
+
         analysis_repository = ForecastAnalysisRepository(db)
         market_data_service = MarketDataService()
 
@@ -43,29 +48,38 @@ def run() -> dict:
         )
         classified = classifier_service.classify_pending_assets(limit=1000)
 
-        job_execution_service.success(execution=execution)
-
-        return {
+        payload = {
             "status": "success",
             "message": "Forecast analysis cycle completed successfully",
+            "job_name": JOB_NAME,
             "summary": {
                 "collected_outcomes": len(collected),
                 "evaluated_points": len(evaluated),
                 "classified_assets": len(classified),
             },
         }
-    except Exception as exc:
 
+        job_execution_service.success(
+            execution=execution,
+            metadata_json=payload,
+        )
+
+        return payload
+
+    except Exception as exc:
         error_payload = {
             "status": "failed",
             "job_name": JOB_NAME,
             "error": str(exc),
         }
-        if "execution" in locals():
+
+        if execution is not None:
             job_execution_service.failed(
                 execution=execution,
                 error_message=str(exc),
+                metadata_json=error_payload,
             )
+
         return error_payload
 
     finally:

@@ -135,4 +135,7 @@ dmypy.json
 #pytest
 .pytest_cache*
 
+#codex
+.codex
+
 storage/*

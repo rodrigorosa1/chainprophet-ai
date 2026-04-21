@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import joblib
-
 import lightgbm as lgb
 import pandas as pd
 
@@ -30,6 +29,7 @@ class MlModelService:
             subsample=0.9,
             colsample_bytree=0.9,
             random_state=42,
+            verbosity=-1,
         )
 
         model.fit(features, target)
@@ -54,6 +54,7 @@ class MlModelService:
             subsample=0.9,
             colsample_bytree=0.9,
             random_state=42,
+            verbosity=-1,
         )
 
         model.fit(features, target)
@@ -82,6 +83,7 @@ class MlModelService:
             subsample=0.9,
             colsample_bytree=0.9,
             random_state=42,
+            verbosity=-1,
         )
 
         model.fit(features, target)
