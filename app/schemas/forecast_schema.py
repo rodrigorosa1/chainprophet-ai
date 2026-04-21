@@ -1,24 +1,26 @@
-from pydantic import BaseModel
 from typing import List, Optional
+from pydantic import BaseModel
 
 
-class AssetResponse(BaseModel):
+class AssetSchema(BaseModel):
     name: str
     symbol: str
     code: str
+    directional: str
+    directional_percent_period: float
 
 
-class BacktestResponse(BaseModel):
+class BacktestSchema(BaseModel):
     windows_used: int
     horizon_hours: int
-    mae: Optional[float] = None
-    rmse: Optional[float] = None
-    mape_percent: Optional[float] = None
-    directional_accuracy_percent: Optional[float] = None
+    mae: float
+    rmse: float
+    mape_percent: float
+    directional_accuracy_percent: float
     quality_score_percent: float
 
 
-class ForecastItemResponse(BaseModel):
+class ForecastPointSchema(BaseModel):
     datetime: str
     target_price: float
     lower_bound_price: float
@@ -26,10 +28,12 @@ class ForecastItemResponse(BaseModel):
     confidence_percent: float
 
 
-class AssetForecastResponse(BaseModel):
-    asset: AssetResponse
-    backtest: BacktestResponse
-    forecast: List[ForecastItemResponse]
+class ForecastResultSchema(BaseModel):
+    asset: AssetSchema
+    reference_price: Optional[float] = None
+    reference_datetime: Optional[str] = None
+    backtest: BacktestSchema
+    forecast: List[ForecastPointSchema]
     error: Optional[str] = None
 
 
@@ -37,4 +41,4 @@ class MultiForecastResponse(BaseModel):
     timeframe: str
     horizon_hours: int
     total_assets: int
-    results: List[AssetForecastResponse]
+    results: List[ForecastResultSchema]
