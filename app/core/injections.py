@@ -1,4 +1,5 @@
 from fastapi import Depends
+from app.agents.forecast_improvement_agent import ForecastImprovementAgent
 from app.core.database import get_db
 from app.repositories.sqlalchemy.asset_repository import AssetRepository
 from app.repositories.sqlalchemy.forecast_analysis_repository import (
@@ -16,6 +17,9 @@ from app.repositories.sqlalchemy.user_repository import UserRepository
 from app.services.backtest_service import BacktestService
 from app.services.feature_engineering_service import FeatureEngineeringService
 from app.services.forecast_evaluation_service import ForecastEvaluationService
+from app.services.forecast_langchain_analyst_service import (
+    ForecastLangChainAnalystService,
+)
 from app.services.forecast_outcome_service import ForecastOutcomeService
 from app.services.forecast_service import ForecastService
 from app.services.market_data_service import MarketDataService
@@ -172,6 +176,18 @@ def get_forecast_llm_analyst_service(
     return ForecastLlmAnalystService(
         ai_report_repository=ai_report_repository,
         ai_client=ai_client,
+    )
+
+
+def get_forecast_langchain_analyst_service(
+    db: Session = Depends(get_db),
+) -> ForecastLangChainAnalystService:
+    ai_report_repository = ForecastAiReportRepository(db)
+    agent = ForecastImprovementAgent()
+
+    return ForecastLangChainAnalystService(
+        ai_report_repository=ai_report_repository,
+        agent=agent,
     )
 
 
