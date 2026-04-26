@@ -4,12 +4,16 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.injections import (
     get_forecast_failure_classifier_service,
+    get_forecast_langchain_analyst_service,
     get_forecast_outcome_service,
     get_forecast_evaluation_service,
     get_ml_training_service,
 )
 from app.services.forecast_failure_classifier_service import (
     ForecastFailureClassifierService,
+)
+from app.services.forecast_langchain_analyst_service import (
+    ForecastLangChainAnalystService,
 )
 from app.services.forecast_outcome_service import ForecastOutcomeService
 from app.services.forecast_evaluation_service import ForecastEvaluationService
@@ -84,10 +88,10 @@ def classify_failures(
 @router.post("/llm-analyze", tags=[tags])
 def llm_analyze_failures(
     analyst_service: Annotated[
-        ForecastLlmAnalystService,
-        Depends(get_forecast_llm_analyst_service),
+        ForecastLangChainAnalystService,
+        Depends(get_forecast_langchain_analyst_service),
     ],
-    limit: int = Query(100, ge=1, le=1000),
+    limit: int = Query(20, ge=1, le=100),
 ):
     try:
         result = analyst_service.analyze_pending_diagnostics(limit=limit)
