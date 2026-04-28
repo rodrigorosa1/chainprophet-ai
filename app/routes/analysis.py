@@ -104,6 +104,28 @@ def llm_analyze_failures(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.post("/llm-report", tags=[tags])
+def llm_generate_reports(
+    analyst_service: Annotated[
+        ForecastLlmAnalystService,
+        Depends(get_forecast_llm_analyst_service),
+    ],
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    try:
+        result = analyst_service.list_reports(limit=limit, offset=offset)
+        return {
+            "status": "success",
+            "limit": limit,
+            "offset": offset,
+            "total_reports": len(result),
+            "items": result,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @router.post("/train-ml", tags=[tags])
 def train_ml_models(
     ticker: str = Query(..., description="Example: BTC-USD"),

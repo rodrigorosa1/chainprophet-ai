@@ -65,3 +65,17 @@ class ForecastAiReportRepository:
         except Exception:
             self.db.rollback()
             raise
+
+    def find_reports(self, limit: int = 50, offset: int = 0):
+        return (
+            self.db.query(ForecastAiReport)
+            .options(
+                joinedload(ForecastAiReport.forecast_request),
+                joinedload(ForecastAiReport.forecast_asset),
+                joinedload(ForecastAiReport.diagnostic),
+            )
+            .order_by(ForecastAiReport.id.desc())
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
