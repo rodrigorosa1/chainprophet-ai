@@ -142,3 +142,83 @@ class ForecastLlmAnalystService:
             "code_review_targets": ai_response.get("code_review_targets", []),
             "experiment_suggestions": ai_response.get("experiment_suggestions", []),
         }
+
+    def list_reports(self, limit: int = 50, offset: int = 0) -> list[dict]:
+        reports = self.ai_report_repository.find_reports(
+            limit=limit,
+            offset=offset,
+        )
+
+        return [self._serialize_report(report) for report in reports]
+
+    def _serialize_report(self, report) -> dict:
+        return {
+            "id": str(report.id),
+            "forecast_request": self._serialize_forecast_request(
+                report.forecast_request
+            ),
+            "forecast_asset": self._serialize_forecast_asset(report.forecast_asset),
+            "diagnostic": self._serialize_diagnostic(report.diagnostic),
+            "analysis_summary": report.analysis_summary,
+            "technical_explanation": report.technical_explanation,
+            "business_explanation": report.business_explanation,
+            "risk_level": report.risk_level,
+            "evidence": report.evidence,
+            "recommended_actions": report.recommended_actions,
+            "code_review_targets": report.code_review_targets,
+            "experiment_suggestions": report.experiment_suggestions,
+            "llm_raw_response": report.llm_raw_response,
+        }
+
+    def _serialize_forecast_request(self, forecast_request) -> dict | None:
+        if forecast_request is None:
+            return None
+
+        return {
+            "id": str(forecast_request.id),
+            "timeframe": forecast_request.timeframe,
+            "horizon_hours": forecast_request.horizon_hours,
+            "total_assets": forecast_request.total_assets,
+            "model_version": forecast_request.model_version,
+            "request_payload": forecast_request.request_payload,
+            "response_payload": forecast_request.response_payload,
+        }
+
+    def _serialize_forecast_asset(self, forecast_asset) -> dict | None:
+        if forecast_asset is None:
+            return None
+
+        return {
+            "id": str(forecast_asset.id),
+            "forecast_request_id": str(forecast_asset.forecast_request_id),
+            "asset_name": forecast_asset.asset_name,
+            "asset_symbol": forecast_asset.asset_symbol,
+            "asset_code": forecast_asset.asset_code,
+            "reference_price": forecast_asset.reference_price,
+            "reference_datetime": self._format_datetime(
+                forecast_asset.reference_datetime
+            ),
+            "error": forecast_asset.error,
+        }
+
+    def _serialize_diagnostic(self, diagnostic) -> dict | None:
+        if diagnostic is None:
+            return None
+
+        return {
+            "id": str(diagnostic.id),
+            "forecast_request_id": str(diagnostic.forecast_request_id),
+            "forecast_asset_id": str(diagnostic.forecast_asset_id),
+            "root_cause_category": diagnostic.root_cause_category,
+            "confidence_score": diagnostic.confidence_score,
+            "summary": diagnostic.summary,
+            "metrics_snapshot": diagnostic.metrics_snapshot,
+            "evidence": diagnostic.evidence,
+            "recommended_actions": diagnostic.recommended_actions,
+        }
+
+    def _format_datetime(self, value):
+        if value is None:
+            return None
+
+        return value.strftime("%Y-%m-%d %H:%M:%S")
